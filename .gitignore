@@ -1,0 +1,19 @@
+node_modules
+.next
+dist
+.env.local
+.env.*.local
+.DS_Store
+*.log
+npm-debug.log*
+yarn-error.log*
+.vercel
+.idea
+.vscode
+*.swp
+*.swo
+.cache
+.turbo
+echo "node_modules/" >> .gitignore
+echo ".next/" >> .gitignore
+echo "dist/" >> .gitignore  
