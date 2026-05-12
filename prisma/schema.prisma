@@ -1,0 +1,365 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  avatarUrl    String?
+  bio          String?
+  xp           Int      @default(0)
+  level        Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  settings         Settings?
+  dailyGoals       DailyGoal[]
+  monthlyGoals     MonthlyGoal[]
+  yearlyGoals      YearlyGoal[]
+  lifetimeGoals    LifetimeGoal[]
+  sideQuests       SideQuest[]
+  roadmapItems     RoadmapItem[]
+  codingActivities CodingActivity[]
+  activityLogs     ActivityLog[]
+  contributionDays ContributionDay[]
+  refreshTokens    RefreshToken[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SETTINGS
+// ─────────────────────────────────────────────────────────────────
+model Settings {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  theme           String   @default("dark")
+  dailyReminders  Boolean  @default(true)
+  goalDeadlines   Boolean  @default(true)
+  marketingEmails Boolean  @default(false)
+  timezone        String   @default("UTC")
+  weekStartsOn    Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// REFRESH TOKEN
+// ─────────────────────────────────────────────────────────────────
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// DAILY GOAL
+// ─────────────────────────────────────────────────────────────────
+model DailyGoal {
+  id                  String    @id @default(cuid())
+  userId              String
+  dateKey             String
+  title               String
+  notes               String    @default("")
+  priority            Priority  @default(MEDIUM)
+  progress            Int       @default(0)
+  completed           Boolean   @default(false)
+  failed              Boolean   @default(false)
+  completedAt         DateTime?
+  failedAt            DateTime?
+  timeEstimateMinutes Int       @default(30)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subtasks DailySubtask[]
+
+  @@index([userId, dateKey])
+  @@map("daily_goals")
+}
+
+model DailySubtask {
+  id          String    @id @default(cuid())
+  goalId      String
+  title       String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  goal DailyGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("daily_subtasks")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MONTHLY GOAL
+// ─────────────────────────────────────────────────────────────────
+model MonthlyGoal {
+  id          String    @id @default(cuid())
+  userId      String
+  monthKey    String
+  title       String
+  notes       String    @default("")
+  priority    Priority  @default(MEDIUM)
+  progress    Int       @default(0)
+  completed   Boolean   @default(false)
+  failed      Boolean   @default(false)
+  completedAt DateTime?
+  failedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subtasks MonthlySubtask[]
+
+  @@index([userId, monthKey])
+  @@map("monthly_goals")
+}
+
+model MonthlySubtask {
+  id          String    @id @default(cuid())
+  goalId      String
+  title       String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  goal MonthlyGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("monthly_subtasks")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// YEARLY GOAL
+// ─────────────────────────────────────────────────────────────────
+model YearlyGoal {
+  id          String    @id @default(cuid())
+  userId      String
+  yearKey     String
+  title       String
+  notes       String    @default("")
+  priority    Priority  @default(MEDIUM)
+  progress    Int       @default(0)
+  completed   Boolean   @default(false)
+  failed      Boolean   @default(false)
+  completedAt DateTime?
+  failedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subtasks YearlySubtask[]
+
+  @@index([userId, yearKey])
+  @@map("yearly_goals")
+}
+
+model YearlySubtask {
+  id          String    @id @default(cuid())
+  goalId      String
+  title       String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  goal YearlyGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("yearly_subtasks")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// LIFETIME GOAL
+// ─────────────────────────────────────────────────────────────────
+model LifetimeGoal {
+  id             String    @id @default(cuid())
+  userId         String
+  title          String
+  notes          String    @default("")
+  progress       Int       @default(0)
+  completed      Boolean   @default(false)
+  completedAt    DateTime?
+  category       String    @default("Personal")
+  estimatedYears Float?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestones LifetimeMilestone[]
+  journal    LifetimeJournal[]
+
+  @@index([userId])
+  @@map("lifetime_goals")
+}
+
+model LifetimeMilestone {
+  id          String    @id @default(cuid())
+  goalId      String
+  title       String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  targetDate  DateTime?
+  createdAt   DateTime  @default(now())
+
+  goal LifetimeGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("lifetime_milestones")
+}
+
+model LifetimeJournal {
+  id               String   @id @default(cuid())
+  goalId           String
+  content          String
+  progressSnapshot Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  goal LifetimeGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("lifetime_journal")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SIDE QUEST
+// ─────────────────────────────────────────────────────────────────
+model SideQuest {
+  id            String    @id @default(cuid())
+  userId        String
+  title         String
+  notes         String    @default("")
+  totalDays     Int
+  completedDays Int       @default(0)
+  completed     Boolean   @default(false)
+  startDate     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("side_quests")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ROADMAP
+// ─────────────────────────────────────────────────────────────────
+model RoadmapItem {
+  id          String    @id @default(cuid())
+  userId      String
+  parentId    String?
+  title       String
+  description String    @default("")
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent     RoadmapItem?       @relation("RoadmapChildren", fields: [parentId], references: [id])
+  children   RoadmapItem[]      @relation("RoadmapChildren")
+  milestones RoadmapMilestone[]
+
+  @@index([userId])
+  @@map("roadmap_items")
+}
+
+model RoadmapMilestone {
+  id        String   @id @default(cuid())
+  itemId    String
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  item RoadmapItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("roadmap_milestones")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CODING ACTIVITY
+// ─────────────────────────────────────────────────────────────────
+model CodingActivity {
+  id           String   @id @default(cuid())
+  userId       String
+  dateKey      String
+  title        String
+  description  String   @default("")
+  minutesSpent Int
+  language     String?
+  xpEarned     Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dateKey])
+  @@map("coding_activities")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CONTRIBUTION GRAPH
+// ─────────────────────────────────────────────────────────────────
+model ContributionDay {
+  id           String   @id @default(cuid())
+  userId       String
+  dateKey      String
+  count        Int      @default(0)
+  xpEarned     Int      @default(0)
+  minutesSpent Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dateKey])
+  @@map("contribution_days")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ACTIVITY LOG
+// ─────────────────────────────────────────────────────────────────
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  entityId  String?
+  metadata  Json?
+  xpDelta   Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("activity_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}

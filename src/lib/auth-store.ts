@@ -2,29 +2,17 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { User, AuthState, AuthSession } from '@/types/auth';
-import { v4 as uuidv4 } from 'uuid';
+import { User, AuthState } from '@/types/auth';
+import { AuthService } from './services';
 
 interface AuthStore extends AuthState {
-  register: (data: { email: string; username: string; passwordHash: string }) => Promise<void>;
-  login: (email: string, passwordHash: string, rememberMe: boolean) => Promise<void>;
+  register: (data: { email: string; username: string; password: string }) => Promise<void>;
+  login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
   logout: () => void;
-  updateProfile: (updates: Partial<User>) => void;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
+  refreshUser: () => Promise<void>;
   clearError: () => void;
 }
-
-// Simulated local database for users
-const getUsers = (): User[] => {
-  if (typeof window === 'undefined') return [];
-  const stored = localStorage.getItem('impr0ve_users_db');
-  return stored ? JSON.parse(stored) : [];
-};
-
-const saveUser = (user: User) => {
-  const users = getUsers();
-  users.push(user);
-  localStorage.setItem('impr0ve_users_db', JSON.stringify(users));
-};
 
 export const useAuth = create<AuthStore>()(
   persist(
@@ -36,89 +24,73 @@ export const useAuth = create<AuthStore>()(
       isLoading: false,
       error: null,
 
-      register: async ({ email, username, passwordHash }) => {
+      register: async (data) => {
         set({ isLoading: true, error: null });
         try {
-          // Simulate network delay
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          const res = await AuthService.register(data);
+          const { accessToken, refreshToken, user } = res.data.data;
           
-          const users = getUsers();
-          if (users.some(u => u.email === email)) {
-            throw new Error('Email already registered');
-          }
-          if (users.some(u => u.username === username)) {
-            throw new Error('Username already taken');
-          }
-
-          const newUser: User = {
-            id: uuidv4(),
-            email,
-            username,
-            passwordHash, // In real apps, this would be hashed on server
-            createdAt: new Date().toISOString(),
-            preferences: { 
-              theme: 'dark', 
-              notifications: {
-                dailyReminders: true,
-                goalDeadlines: true,
-                marketing: false
-              } 
-            }
-          };
-
-          saveUser(newUser);
+          localStorage.setItem('impr0ve-refresh-token', refreshToken);
           
-          // Auto-login after registration
-          const token = btoa(JSON.stringify({ id: newUser.id, exp: Date.now() + 86400000 }));
           set({ 
-            user: newUser, 
-            token, 
-            expiresAt: new Date(Date.now() + 86400000).toISOString(),
+            user, 
+            token: accessToken, 
             isLoading: false 
           });
         } catch (err: any) {
-          set({ error: err.message, isLoading: false });
-          throw err;
+          const message = err.response?.data?.error || 'Registration failed';
+          set({ error: message, isLoading: false });
+          throw new Error(message);
         }
       },
 
-      login: async (email, passwordHash, rememberMe) => {
+      login: async (email, password, rememberMe) => {
         set({ isLoading: true, error: null });
         try {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          const users = getUsers();
-          const user = users.find(u => u.email === email && u.passwordHash === passwordHash);
-          
-          if (!user) {
-            throw new Error('Invalid email or password');
-          }
+          const res = await AuthService.login({ email, password, rememberMe });
+          const { accessToken, refreshToken, user } = res.data.data;
 
-          const duration = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
-          const expiresAt = new Date(Date.now() + duration).toISOString();
-          const token = btoa(JSON.stringify({ id: user.id, exp: Date.now() + duration }));
-
-          set({ user, token, expiresAt, rememberMe, isLoading: false });
+          localStorage.setItem('impr0ve-refresh-token', refreshToken);
+          
+          set({ 
+            user, 
+            token: accessToken, 
+            rememberMe,
+            isLoading: false 
+          });
         } catch (err: any) {
-          set({ error: err.message, isLoading: false });
-          throw err;
+          const message = err.response?.data?.error || 'Login failed';
+          set({ error: message, isLoading: false });
+          throw new Error(message);
         }
       },
 
-      logout: () => {
+      logout: async () => {
+        const refreshToken = localStorage.getItem('impr0ve-refresh-token');
+        if (refreshToken) {
+          AuthService.logout(refreshToken).catch(() => {});
+        }
+        localStorage.removeItem('impr0ve-refresh-token');
         set({ user: null, token: null, expiresAt: null, error: null });
-        // Force a page reload to clear data stores linked to userId
         window.location.href = '/login';
       },
 
-      updateProfile: (updates) => {
-        const currentUser = get().user;
-        if (!currentUser) return;
+      updateProfile: async (updates) => {
+        try {
+          const res = await AuthService.updateProfile(updates);
+          set({ user: res.data.data });
+        } catch (err: any) {
+          console.error('Profile update failed', err);
+        }
+      },
 
-        const updatedUser = { ...currentUser, ...updates };
-        const users = getUsers().map(u => u.id === currentUser.id ? updatedUser : u);
-        localStorage.setItem('impr0ve_users_db', JSON.stringify(users));
-        set({ user: updatedUser });
+      refreshUser: async () => {
+        try {
+          const res = await AuthService.getMe();
+          set({ user: res.data.data });
+        } catch (err) {
+          console.error('Failed to refresh user data', err);
+        }
       },
 
       clearError: () => set({ error: null }),
@@ -126,6 +98,12 @@ export const useAuth = create<AuthStore>()(
     {
       name: 'impr0ve-auth-session',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ 
+        token: state.token, 
+        user: state.user,
+        rememberMe: state.rememberMe
+      }),
     }
   )
 );
+

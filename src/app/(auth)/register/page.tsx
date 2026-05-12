@@ -46,7 +46,7 @@ export default function RegisterPage() {
       await register({
         email: formData.email,
         username: formData.username,
-        passwordHash: formData.password // Simulated
+        password: formData.password // Simulated
       });
       router.push('/dashboard');
     } catch (err) {
