@@ -35,6 +35,7 @@ model User {
   activityLogs     ActivityLog[]
   contributionDays ContributionDay[]
   refreshTokens    RefreshToken[]
+  stuffToDoItems   StuffToDoItem[]
 
   @@map("users")
 }
@@ -362,4 +363,25 @@ enum Priority {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+// ─────────────────────────────────────────────────────────────────
+// STUFF TO DO (Lifestyle/Activity Planner)
+// ─────────────────────────────────────────────────────────────────
+model StuffToDoItem {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  category    String    // Movies, Social, Physical, Productivity, Learning, Fun, Travel, Other
+  note        String    @default("")
+  plannedDate DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("stuff_to_do_items")
 }

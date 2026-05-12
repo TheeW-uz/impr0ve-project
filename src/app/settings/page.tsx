@@ -1,6 +1,5 @@
-'use client';
-
-import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { SettingsService, UserService } from '@/lib/services';
 import { useAuth } from '@/lib/auth-store';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { 
   User as UserIcon, Mail, Shield, Bell, Camera, 
   Loader2, Check, Lock, Globe, Smartphone, Trash2,
-  Calendar, Zap, MessageSquare
+  Calendar, Zap, MessageSquare, ShieldCheck, Fingerprint
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/toaster';
@@ -19,140 +18,136 @@ type SettingsTab = 'profile' | 'account' | 'notifications';
 export default function SettingsPage() {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
-  const [isSaving, setIsSaving] = useState(false);
   
-  // Profile state
-  const [profileData, setProfileData] = useState({
-    username: user?.username || '',
-    bio: user?.bio || '',
+  const { data: settings, isLoading: settingsLoading } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => SettingsService.getSettings().then(res => res.data.data),
   });
 
-  // Account state
-  const [passwords, setPasswords] = useState({
-    current: '',
-    new: '',
-    confirm: ''
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: any) => UserService.updateProfile(data),
+    onSuccess: (res) => {
+      updateProfile(res.data.data);
+      toast({ title: 'Profile updated', description: 'Your public identity has been evolved.', variant: 'success' });
+    }
   });
 
-  // Notifications state
-  const [notifs, setNotifs] = useState(user?.preferences.notifications || {
-    dailyReminders: true,
-    goalDeadlines: true,
-    marketing: false
+  const updateSettingsMutation = useMutation({
+    mutationFn: (data: any) => SettingsService.updateSettings(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      toast({ title: 'Preferences saved', description: 'Your system configuration is updated.', variant: 'success' });
+    }
   });
 
   if (!user) return null;
 
-  const handleProfileSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    updateProfile(profileData);
-    setIsSaving(false);
-    toast({ title: 'Profile updated', description: 'Your public profile has been updated.', variant: 'success' });
-  };
-
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwords.new !== passwords.confirm) {
-      toast({ title: 'Error', description: 'New passwords do not match.', variant: 'error' });
-      return;
-    }
-    setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    // Simulated password update
-    setPasswords({ current: '', new: '', confirm: '' });
-    setIsSaving(false);
-    toast({ title: 'Password updated', description: 'Your security credentials have been changed.', variant: 'success' });
-  };
-
-  const handleNotifToggle = (key: keyof typeof notifs) => {
-    const updated = { ...notifs, [key]: !notifs[key] };
-    setNotifs(updated);
-    updateProfile({
-      preferences: {
-        ...user.preferences,
-        notifications: updated
-      }
-    });
-    toast({ title: 'Preference updated', description: 'Notification settings saved.', variant: 'success' });
-  };
-
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <header>
-        <h1 className="text-4xl font-black text-white tracking-tight">Settings</h1>
-        <p className="text-gray-400 mt-1">Manage your account and preferences.</p>
+    <div className="max-w-5xl mx-auto space-y-12 pb-24 lg:pb-12 px-2">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 px-1">
+        <div className="flex items-center gap-6">
+          <div className="w-20 h-20 rounded-[2.5rem] bg-white/[0.03] flex items-center justify-center border border-white/10 shadow-2xl rotate-3">
+            <Fingerprint className="w-10 h-10 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter">System Config</h1>
+            <p className="text-gray-400 mt-2 flex items-center gap-2">
+              <span className="text-emerald-500/80 font-black uppercase tracking-[0.2em] text-[10px]">User Parameters</span>
+              <span className="w-1 h-1 rounded-full bg-gray-800" />
+              <span className="text-sm font-medium">Personalize your execution environment</span>
+            </p>
+          </div>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        {/* Sidebar Tabs - Horizontal on mobile, vertical on desktop */}
-        <div className="flex overflow-x-auto no-scrollbar lg:flex-col gap-1 -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+        {/* Navigation Rail */}
+        <div className="lg:col-span-1 space-y-2">
           {[
-            { id: 'profile', label: 'Profile', icon: UserIcon },
-            { id: 'account', label: 'Account & Security', icon: Shield },
-            { id: 'notifications', label: 'Notifications', icon: Bell },
+            { id: 'profile', label: 'Identity', icon: UserIcon, color: 'text-emerald-400' },
+            { id: 'account', label: 'Security', icon: ShieldCheck, color: 'text-blue-400' },
+            { id: 'notifications', label: 'Signals', icon: Bell, color: 'text-amber-400' },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as SettingsTab)}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] md:text-sm font-medium transition-all group whitespace-nowrap min-w-fit lg:w-full',
+                'w-full flex items-center gap-4 px-6 py-4 rounded-3xl transition-all duration-300 group',
                 activeTab === tab.id
-                  ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                  ? 'bg-white/[0.05] border border-white/10 shadow-xl'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]'
               )}
             >
-              <tab.icon className={cn('w-4 h-4', activeTab === tab.id ? 'text-primary-400' : 'text-gray-500 group-hover:text-gray-400')} />
-              {tab.label}
+              <div className={cn(
+                'w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500',
+                activeTab === tab.id ? 'bg-white/10' : 'bg-transparent'
+              )}>
+                <tab.icon className={cn('w-5 h-5', activeTab === tab.id ? tab.color : 'text-gray-600')} />
+              </div>
+              <span className={cn('font-black text-xs uppercase tracking-widest', activeTab === tab.id ? 'text-white' : 'text-gray-500')}>
+                {tab.label}
+              </span>
             </button>
           ))}
         </div>
 
-        {/* Content Area */}
-        <div className="lg:col-span-2">
+        {/* Content Console */}
+        <div className="lg:col-span-3">
           <AnimatePresence mode="wait">
             {activeTab === 'profile' && (
-              <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <Card className="bg-white/5 border-white/10">
-                  <CardHeader className="p-6 pb-2"><CardTitle className="text-xl font-bold">Public Profile</CardTitle></CardHeader>
-                  <CardContent className="p-6 pt-4">
-                    <form onSubmit={handleProfileSave} className="space-y-6">
-                      <div className="flex items-center gap-6">
+              <motion.div key="profile" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <Card className="bg-white/[0.02] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+                  <CardHeader className="p-10 pb-2">
+                    <CardTitle className="text-3xl font-black text-white tracking-tight">Public Identity</CardTitle>
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">How you appear in the collective</p>
+                  </CardHeader>
+                  <CardContent className="p-10 pt-8">
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      updateProfileMutation.mutate({
+                        username: formData.get('username'),
+                        bio: formData.get('bio'),
+                      });
+                    }} className="space-y-10">
+                      <div className="flex items-center gap-8">
                         <div className="relative group">
-                          <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-primary-500 to-blue-600 flex items-center justify-center text-3xl font-black text-white uppercase shadow-xl shadow-primary-500/20">
+                          <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-tr from-emerald-500 to-blue-600 flex items-center justify-center text-4xl font-black text-white uppercase shadow-2xl shadow-emerald-500/20">
                             {user.username.substring(0, 2)}
                           </div>
-                          <button type="button" className="absolute inset-0 bg-black/40 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><Camera className="w-5 h-5 text-white" /></button>
+                          <button type="button" className="absolute inset-0 bg-black/60 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                            <Camera className="w-6 h-6 text-white" />
+                          </button>
                         </div>
                         <div>
-                          <h3 className="font-bold text-white">Profile Photo</h3>
-                          <p className="text-xs text-gray-500">Update your avatar displayed on your dashboard.</p>
-                          <div className="flex gap-2 mt-2">
-                            <Button type="button" variant="outline" size="sm" className="h-8 text-xs border-white/10">Upload</Button>
+                          <h3 className="text-lg font-black text-white">Avatar Matrix</h3>
+                          <p className="text-xs text-gray-500 font-medium">Neural visualization of your presence.</p>
+                          <div className="flex gap-2 mt-4">
+                            <Button type="button" variant="outline" size="sm" className="h-10 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 font-bold px-6">Upload New</Button>
                           </div>
                         </div>
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-8">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 px-1">Username</label>
-                          <Input value={profileData.username} onChange={(e) => setProfileData({ ...profileData, username: e.target.value })} className="bg-white/5 border-white/10" />
+                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Username Handle</label>
+                          <Input name="username" defaultValue={user.username} className="h-14 bg-white/5 border-white/10 rounded-2xl text-lg font-bold text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none" />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 px-1">Bio</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Mission Directive (Bio)</label>
                           <textarea
-                            value={profileData.bio}
-                            onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                            placeholder="A short description about you..."
-                            className="w-full min-h-[100px] bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all resize-none"
+                            name="bio"
+                            defaultValue={user.bio || ''}
+                            placeholder="Define your purpose..."
+                            className="w-full min-h-[120px] bg-white/5 border border-white/10 rounded-2xl p-6 text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all resize-none"
                           />
                         </div>
                       </div>
-                      <div className="flex justify-end pt-2">
-                        <Button type="submit" disabled={isSaving} className="bg-primary-500 hover:bg-primary-600 font-bold px-8 h-10 rounded-xl">
-                          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Profile'}
+                      <div className="flex justify-end pt-4">
+                        <Button type="submit" disabled={updateProfileMutation.isPending} className="bg-emerald-500 hover:bg-emerald-600 font-black px-12 h-14 rounded-2xl text-black shadow-xl shadow-emerald-500/20 transition-all">
+                          {updateProfileMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Update Identity'}
                         </Button>
                       </div>
                     </form>
@@ -162,42 +157,46 @@ export default function SettingsPage() {
             )}
 
             {activeTab === 'account' && (
-              <motion.div key="account" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <Card className="bg-white/5 border-white/10">
-                  <CardHeader className="p-6 pb-2"><CardTitle className="text-xl font-bold">Email & Security</CardTitle></CardHeader>
-                  <CardContent className="p-6 pt-4 space-y-6">
+              <motion.div key="account" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-8">
+                <Card className="bg-white/[0.02] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+                  <CardHeader className="p-10 pb-2">
+                    <CardTitle className="text-3xl font-black text-white tracking-tight">Access Control</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-10 pt-8 space-y-10">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 px-1">Email Address</label>
-                      <div className="flex gap-3">
-                        <Input value={user.email} disabled className="bg-white/5 border-white/10 opacity-50 flex-1" />
-                        <Button variant="outline" size="sm" className="border-white/10 h-10">Verify</Button>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Recovery Email</label>
+                      <div className="flex gap-4">
+                        <Input value={user.email} disabled className="h-14 bg-white/5 border-white/10 opacity-40 rounded-2xl flex-1 text-white font-bold" />
+                        <Button variant="outline" className="h-14 rounded-2xl border-white/10 px-8 font-black text-xs uppercase tracking-widest bg-white/5 hover:bg-white/10">Verified</Button>
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-white/10">
-                      <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2"><Lock className="w-4 h-4 text-primary-400" /> Change Password</h4>
-                      <form onSubmit={handlePasswordChange} className="space-y-4">
-                        <Input type="password" placeholder="Current Password" value={passwords.current} onChange={(e) => setPasswords({...passwords, current: e.target.value})} className="bg-white/5 border-white/10" required />
-                        <div className="grid grid-cols-2 gap-4">
-                          <Input type="password" placeholder="New Password" value={passwords.new} onChange={(e) => setPasswords({...passwords, new: e.target.value})} className="bg-white/5 border-white/10" required />
-                          <Input type="password" placeholder="Confirm New" value={passwords.confirm} onChange={(e) => setPasswords({...passwords, confirm: e.target.value})} className="bg-white/5 border-white/10" required />
+                    <div className="pt-8 border-t border-white/5">
+                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-3">
+                        <Lock className="w-4 h-4 text-blue-400" /> Security Override
+                      </h4>
+                      <form className="space-y-6">
+                        <Input type="password" placeholder="Current Access Key" className="h-14 bg-white/5 border-white/10 rounded-2xl text-white outline-none" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Input type="password" placeholder="New Secret Key" className="h-14 bg-white/5 border-white/10 rounded-2xl text-white outline-none" />
+                          <Input type="password" placeholder="Confirm Secret Key" className="h-14 bg-white/5 border-white/10 rounded-2xl text-white outline-none" />
                         </div>
-                        <Button type="submit" disabled={isSaving} className="w-full bg-white/10 hover:bg-white/20 text-white font-bold h-10 rounded-xl">
-                          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update Password'}
+                        <Button type="button" className="w-full bg-white/10 hover:bg-white/20 text-white font-black h-14 rounded-2xl text-xs uppercase tracking-widest transition-all">
+                          Rotate Access Credentials
                         </Button>
                       </form>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-red-500/5 border-red-500/10">
-                  <CardContent className="p-6">
+                <Card className="bg-red-500/5 border-red-500/10 rounded-[2.5rem] overflow-hidden">
+                  <CardContent className="p-8">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-bold text-red-400">Delete Account</h4>
-                        <p className="text-xs text-gray-500 mt-1">Permanently remove all your data and access.</p>
+                        <h4 className="text-lg font-black text-red-500">Self-Destruct</h4>
+                        <p className="text-xs text-gray-500 font-medium mt-1">Permanently erase all traces of your existence from this platform.</p>
                       </div>
-                      <Button variant="ghost" className="text-red-400 border border-red-500/20 hover:bg-red-500/10 h-10 px-6">Delete</Button>
+                      <Button variant="ghost" className="text-red-500 border border-red-500/20 hover:bg-red-500/10 h-12 rounded-xl px-8 font-black text-xs uppercase tracking-widest">Execute</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -205,35 +204,41 @@ export default function SettingsPage() {
             )}
 
             {activeTab === 'notifications' && (
-              <motion.div key="notifs" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <Card className="bg-white/5 border-white/10">
-                  <CardHeader className="p-6 pb-2"><CardTitle className="text-xl font-bold">Preferences</CardTitle></CardHeader>
-                  <CardContent className="p-6 pt-4 space-y-6">
+              <motion.div key="notifs" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <Card className="bg-white/[0.02] border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+                  <CardHeader className="p-10 pb-2">
+                    <CardTitle className="text-3xl font-black text-white tracking-tight">Signal Flow</CardTitle>
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Configure your system alerts</p>
+                  </CardHeader>
+                  <CardContent className="p-10 pt-8 space-y-6">
                     {[
-                      { id: 'dailyReminders', label: 'Daily Goal Reminders', desc: 'Get notified to start your daily goals every morning.', icon: Zap },
-                      { id: 'goalDeadlines', label: 'Deadline Alerts', desc: 'Receive alerts when your monthly or yearly goals are ending.', icon: Calendar },
-                      { id: 'marketing', label: 'Product Updates', desc: 'Occasional emails about new features and productivity tips.', icon: MessageSquare },
+                      { id: 'dailyReminders', label: 'Execution Alerts', desc: 'Neural nudge to initiate your daily mission objectives.', icon: Zap, color: 'text-emerald-400' },
+                      { id: 'goalDeadlines', label: 'Timeline Critical', desc: 'Priority signal when strategic horizons are approaching.', icon: Calendar, color: 'text-blue-400' },
+                      { id: 'marketing', label: 'System Briefings', desc: 'Updates on platform evolution and protocol enhancements.', icon: MessageSquare, color: 'text-amber-400' },
                     ].map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-400">
-                            <item.icon className="w-5 h-5" />
+                      <div key={item.id} className="flex items-center justify-between p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all duration-300">
+                        <div className="flex items-center gap-6">
+                          <div className={cn('w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center', item.color)}>
+                            <item.icon className="w-6 h-6" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-white">{item.label}</p>
-                            <p className="text-xs text-gray-500">{item.desc}</p>
+                            <p className="text-lg font-black text-white">{item.label}</p>
+                            <p className="text-xs text-gray-500 font-medium">{item.desc}</p>
                           </div>
                         </div>
                         <button
-                          onClick={() => handleNotifToggle(item.id as keyof typeof notifs)}
+                          onClick={() => {
+                            const current = settings?.[item.id] ?? true;
+                            updateSettingsMutation.mutate({ [item.id]: !current });
+                          }}
                           className={cn(
-                            'w-12 h-6 rounded-full transition-all relative',
-                            notifs[item.id as keyof typeof notifs] ? 'bg-primary-500' : 'bg-white/10'
+                            'w-14 h-7 rounded-full transition-all relative flex items-center px-1',
+                            (settings?.[item.id] ?? true) ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-white/10'
                           )}
                         >
                           <motion.div
-                            animate={{ x: notifs[item.id as keyof typeof notifs] ? 26 : 4 }}
-                            className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-lg"
+                            animate={{ x: (settings?.[item.id] ?? true) ? 28 : 0 }}
+                            className="w-5 h-5 bg-white rounded-full shadow-lg"
                           />
                         </button>
                       </div>
@@ -248,3 +253,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

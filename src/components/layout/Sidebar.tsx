@@ -1,25 +1,36 @@
 'use client';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Home, Target, Map, List, Bolt, Code, Flame } from 'lucide-react';
+import { Menu, X, Home, Target, Map, List, Bolt, Code, Flame, Calendar, CalendarRange, Star } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useStore, computeCodingStreak } from '@/lib/store';
 import { useAuth } from '@/lib/auth-store';
-import { LogOut, Settings, User as UserIcon } from 'lucide-react';
+import { LogOut, Settings, User as UserIcon, ChevronDown, ChevronRight } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/goals', label: 'Goals', icon: Target },
+  { href: '/todo', label: 'To-Do List', icon: Target },
+  { 
+    label: 'Goals', 
+    icon: Target,
+    subItems: [
+      { href: '/goals/monthly', label: 'Monthly Goals', icon: Calendar },
+      { href: '/goals/yearly', label: 'Yearly Goals', icon: CalendarRange },
+      { href: '/goals/lifetime', label: 'Lifetime Goals', icon: Star },
+    ]
+  },
   { href: '/side-quests', label: 'Side Quests', icon: Map },
-  { href: '/roadmap', label: 'Roadmap', icon: List },
-  { href: '/todo', label: 'Stuff To Do', icon: Bolt },
+  { href: '/stuff', label: 'Stuff To Do', icon: List },
+  { href: '/roadmap', label: 'Roadmap', icon: Map },
   { href: '/coding', label: 'Coding', icon: Code },
+
 ];
 
 export function Sidebar() {
   const [open, setOpen] = useState(true);
+  const [goalsExpanded, setGoalsExpanded] = useState(true);
   const pathname = usePathname();
   const { codingActivities } = useStore();
   const { current: streak } = computeCodingStreak(codingActivities);
@@ -60,13 +71,62 @@ export function Sidebar() {
             </div>
 
             {/* Nav */}
-            <nav className="flex-1 px-3 space-y-1">
-              {navItems.map(({ href, label, icon: Icon }) => {
-                const isActive = pathname === href || pathname.startsWith(href + '/');
+            <nav className="flex-1 px-3 space-y-1 overflow-y-auto custom-scrollbar">
+              {navItems.map((item) => {
+                if (item.subItems) {
+                  const isAnySubActive = item.subItems.some(sub => pathname === sub.href);
+                  return (
+                    <div key={item.label} className="space-y-1">
+                      <button
+                        onClick={() => setGoalsExpanded(!goalsExpanded)}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group',
+                          isAnySubActive ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        )}
+                      >
+                        <item.icon className={cn('w-5 h-5 transition-all', isAnySubActive ? 'text-primary-400' : 'group-hover:text-primary-400')} />
+                        <span className="flex-1 text-left">{item.label}</span>
+                        {goalsExpanded ? <ChevronDown className="w-4 h-4 opacity-50" /> : <ChevronRight className="w-4 h-4 opacity-50" />}
+                      </button>
+                      
+                      <AnimatePresence>
+                        {goalsExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden space-y-1"
+                          >
+                            {item.subItems.map((sub) => {
+                              const isSubActive = pathname === sub.href;
+                              return (
+                                <Link
+                                  key={sub.href}
+                                  href={sub.href}
+                                  className={cn(
+                                    'flex items-center gap-3 pl-11 pr-3 py-2 rounded-xl text-[13px] font-medium transition-all group',
+                                    isSubActive
+                                      ? 'bg-primary-500/10 text-white'
+                                      : 'text-gray-500 hover:text-white hover:bg-white/5'
+                                  )}
+                                >
+                                  <sub.icon className={cn('w-4 h-4', isSubActive ? 'text-primary-400' : 'group-hover:text-primary-400')} />
+                                  <span>{sub.label}</span>
+                                </Link>
+                              );
+                            })}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                }
+
+                const isActive = pathname === item.href;
                 return (
                   <Link
-                    key={href}
-                    href={href}
+                    key={item.href}
+                    href={item.href!}
                     className={cn(
                       'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group',
                       isActive
@@ -74,11 +134,11 @@ export function Sidebar() {
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                     )}
                   >
-                    <Icon className={cn(
+                    <item.icon className={cn(
                       'w-5 h-5 transition-all',
                       isActive ? 'text-primary-400' : 'group-hover:text-primary-400 group-hover:scale-110'
                     )} />
-                    <span>{label}</span>
+                    <span>{item.label}</span>
                     {isActive && (
                       <motion.div
                         layoutId="sidebar-active"
@@ -89,6 +149,7 @@ export function Sidebar() {
                 );
               })}
             </nav>
+
 
             {/* Streak badge — real data */}
             <div className="px-4 mt-auto">

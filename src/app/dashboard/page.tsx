@@ -120,7 +120,7 @@ export default function DashboardPage() {
             value: todayTotal === 0 ? '—' : `${todayDone}/${todayTotal}`,
             sub: todayTotal > 0 ? `${todayRate}% done` : 'No goals yet',
             icon: Sun, color: 'text-amber-400', bg: 'bg-amber-500/10',
-            href: '/goals',
+            href: '/todo',
           },
           {
             label: 'Coding Streak',
@@ -134,15 +134,16 @@ export default function DashboardPage() {
             value: `${consistencyRate}%`,
             sub: `${daysWithCompletion}/${dayKeys.length} active`,
             icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10',
-            href: '/goals',
+            href: '/todo',
           },
           {
             label: 'Total Progress',
             value: totalDoneEver,
             sub: `${totalGoalsEver} goals ever`,
             icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10',
-            href: '/goals',
+            href: '/goals/monthly',
           },
+
         ].map((stat, i) => (
           <motion.div key={stat.label} custom={i} variants={fadeUp} initial="hidden" animate="show">
             <Link href={stat.href}>
@@ -236,39 +237,42 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="p-5 pt-3 space-y-4">
               {[
-                { label: 'Daily', done: allDailyDone, failed: allDailyFailed, total: allDailyTotal, rate: overallDailyRate, color: 'bg-amber-500', icon: Sun },
-                { label: 'Monthly', done: monthDone, failed: monthlyGoals.filter(g=>g.failed).length, total: monthTotal, rate: monthRate, color: 'bg-blue-500', icon: CalendarDays },
-                { label: 'Yearly', done: yearDone, failed: yearlyGoals.filter(g=>g.failed).length, total: yearTotal, rate: yearRate, color: 'bg-purple-500', icon: CalendarRange },
-                { label: 'Lifetime', done: lifetimeDone, failed: 0, total: lifetimeGoals.length, rate: lifetimeAvgProgress, color: 'bg-emerald-500', icon: Infinity },
-              ].map(({ label, done, failed, total, rate, color, icon: Icon }) => (
-                <div key={label} className="space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-3.5 h-3.5 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-300">{label}</span>
+                { label: 'Daily', done: allDailyDone, failed: allDailyFailed, total: allDailyTotal, rate: overallDailyRate, color: 'bg-amber-500', icon: Sun, href: '/todo' },
+                { label: 'Monthly', done: monthDone, failed: monthlyGoals.filter(g=>g.failed).length, total: monthTotal, rate: monthRate, color: 'bg-blue-500', icon: CalendarDays, href: '/goals/monthly' },
+                { label: 'Yearly', done: yearDone, failed: yearlyGoals.filter(g=>g.failed).length, total: yearTotal, rate: yearRate, color: 'bg-purple-500', icon: CalendarRange, href: '/goals/yearly' },
+                { label: 'Lifetime', done: lifetimeDone, failed: 0, total: lifetimeGoals.length, rate: lifetimeAvgProgress, color: 'bg-emerald-500', icon: Infinity, href: '/goals/lifetime' },
+              ].map(({ label, done, failed, total, rate, color, icon: Icon, href }) => (
+                <Link key={label} href={href} className="block group/item">
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Icon className="w-3.5 h-3.5 text-gray-400 group-hover/item:text-white transition-colors" />
+                        <span className="text-sm font-medium text-gray-300 group-hover/item:text-white transition-colors">{label}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px]">
+                        {total > 0 ? (
+                          <>
+                            <span className="text-green-400">{done} done</span>
+                            {failed > 0 && <span className="text-red-400">{failed} failed</span>}
+                            <span className="text-gray-500">{total} total</span>
+                          </>
+                        ) : (
+                          <span className="text-gray-600">No goals</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-[11px]">
-                      {total > 0 ? (
-                        <>
-                          <span className="text-green-400">{done} done</span>
-                          {failed > 0 && <span className="text-red-400">{failed} failed</span>}
-                          <span className="text-gray-500">{total} total</span>
-                        </>
-                      ) : (
-                        <span className="text-gray-600">No goals</span>
-                      )}
+                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <motion.div
+                        className={cn('h-full rounded-full', color)}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${rate}%` }}
+                        transition={{ duration: 0.6 }}
+                      />
                     </div>
                   </div>
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <motion.div
-                      className={cn('h-full rounded-full', color)}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${rate}%` }}
-                      transition={{ duration: 0.6 }}
-                    />
-                  </div>
-                </div>
+                </Link>
               ))}
+
             </CardContent>
           </Card>
         </motion.div>

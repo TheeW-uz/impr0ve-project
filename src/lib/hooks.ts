@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { GoalService, QuestService, CodingService, AnalyticsService } from './services';
 
 // ─── Daily Goals Hooks ───────────────────────────────────────────────
-export function useDailyGoals(dateKey?: string) {
+export function useDailyGoals(params?: { dateKey?: string; monthKey?: string }) {
   return useQuery({
-    queryKey: ['goals', 'daily', dateKey],
-    queryFn: () => GoalService.getDaily(dateKey).then(res => res.data.data),
+    queryKey: ['goals', 'daily', params],
+    queryFn: () => GoalService.getDaily(params).then(res => res.data.data),
   });
 }
+
 
 export function useCreateDailyGoal() {
   const queryClient = useQueryClient();

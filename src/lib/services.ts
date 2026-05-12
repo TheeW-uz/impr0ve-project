@@ -10,7 +10,14 @@ export const AuthService = {
 
 export const GoalService = {
   // Daily
-  getDaily: (dateKey?: string) => api.get(`/goals/daily${dateKey ? `?dateKey=${dateKey}` : ''}`),
+  getDaily: (params?: { dateKey?: string; monthKey?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.dateKey) query.set('dateKey', params.dateKey);
+    if (params?.monthKey) query.set('monthKey', params.monthKey);
+    const qs = query.toString();
+    return api.get(`/goals/daily${qs ? `?${qs}` : ''}`);
+  },
+
   createDaily: (data: any) => api.post('/goals/daily', data),
   updateDaily: (id: string, data: any) => api.patch(`/goals/daily/${id}`, data),
   deleteDaily: (id: string) => api.delete(`/goals/daily/${id}`),
@@ -58,3 +65,25 @@ export const SettingsService = {
   getSettings: () => api.get('/settings'),
   updateSettings: (data: any) => api.patch('/settings', data),
 };
+
+export const RoadmapService = {
+  getAll: () => api.get('/roadmap'),
+  create: (data: any) => api.post('/roadmap', data),
+  update: (id: string, data: any) => api.patch(`/roadmap/${id}`, data),
+  delete: (id: string) => api.delete(`/roadmap/${id}`),
+};
+
+export const UserService = {
+  updateProfile: (data: any) => api.patch('/users/profile', data),
+};
+
+export const StuffToDoService = {
+  getAll: () => api.get('/stuff-to-do'),
+  create: (data: any) => api.post('/stuff-to-do', data),
+  update: (id: string, data: any) => api.put(`/stuff-to-do/${id}`, data),
+  delete: (id: string) => api.delete(`/stuff-to-do/${id}`),
+};
+
+
+
+

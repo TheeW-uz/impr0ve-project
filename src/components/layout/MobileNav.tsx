@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Target, List, Bolt, Code, Menu, User, Settings, LogOut, X, Shield, Bell } from 'lucide-react';
+import { Home, Target, List, Bolt, Code, Menu, User, Settings, LogOut, X, Shield, Bell, Calendar, CalendarRange, Star, Map } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -10,10 +10,12 @@ import { useAuth } from '@/lib/auth-store';
 
 const navItems = [
   { href: '/dashboard', label: 'Home', icon: Home },
-  { href: '/goals', label: 'Goals', icon: Target },
+  { href: '/todo', label: 'To-Do', icon: Target },
   { href: '/coding', label: 'Coding', icon: Code },
-  { href: '/todo', label: 'To-do', icon: Bolt },
 ];
+
+
+
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -25,10 +27,17 @@ export function MobileNav() {
   if (!user || isPublicRoute) return null;
 
   const moreItems = [
+    { href: '/goals/monthly', label: 'Monthly Goals', icon: Calendar },
+    { href: '/goals/yearly', label: 'Yearly Goals', icon: CalendarRange },
+    { href: '/goals/lifetime', label: 'Lifetime Goals', icon: Star },
+    { href: '/side-quests', label: 'Side Quests', icon: Map },
+    { href: '/stuff', label: 'Stuff To Do', icon: List },
+    { href: '/roadmap', label: 'Roadmap', icon: List },
     { href: '/settings', label: 'Settings', icon: Settings },
-    { href: '/settings?tab=account', label: 'Security', icon: Shield },
-    { href: '/settings?tab=notifications', label: 'Alerts', icon: Bell },
+
   ];
+
+
 
   return (
     <>

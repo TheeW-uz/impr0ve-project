@@ -18,16 +18,22 @@ export async function GET(req: NextRequest) {
   const auth = getAuthUser(req);
   if (!auth) return err('Unauthorized', 401);
 
-  const dateKey = req.nextUrl.searchParams.get('dateKey') ?? undefined;
+  const dateKey = req.nextUrl.searchParams.get('dateKey');
+  const monthKey = req.nextUrl.searchParams.get('monthKey'); // e.g., "2026-05"
 
   const goals = await prisma.dailyGoal.findMany({
-    where: { userId: auth.sub, ...(dateKey ? { dateKey } : {}) },
+    where: {
+      userId: auth.sub,
+      ...(dateKey ? { dateKey } : {}),
+      ...(monthKey ? { dateKey: { startsWith: monthKey } } : {}),
+    },
     include: { subtasks: true },
-    orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+    orderBy: [{ dateKey: 'asc' }, { priority: 'desc' }, { createdAt: 'asc' }],
   });
 
   return ok(goals);
 }
+
 
 export async function POST(req: NextRequest) {
   const auth = getAuthUser(req);
