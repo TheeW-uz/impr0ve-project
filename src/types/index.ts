@@ -144,16 +144,6 @@ export interface Quest {
   notes?: string;
 }
 
-export interface RoadmapItem {
-  id: string;
-  title: string;
-  description?: string;
-  dueDate?: string;
-  completed: boolean;
-  milestones?: { id: string; title: string; completed: boolean }[];
-  children?: RoadmapItem[];
-}
-
 export interface TodoItem {
   id: string;
   title: string;

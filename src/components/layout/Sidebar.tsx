@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Home, Target, Map, List, Bolt, Code, Flame, Calendar, CalendarRange, Star } from 'lucide-react';
+import { Menu, X, Home, Target, ShieldBan, List, Code, Flame, Calendar, CalendarRange, Star } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -21,9 +21,9 @@ const navItems = [
       { href: '/goals/lifetime', label: 'Lifetime Goals', icon: Star },
     ]
   },
-  { href: '/side-quests', label: 'Side Quests', icon: Map },
+  { href: '/side-quests', label: 'Side Quests', icon: List },
   { href: '/stuff', label: 'Stuff To Do', icon: List },
-  { href: '/roadmap', label: 'Roadmap', icon: Map },
+  { href: '/banned-activities', label: 'Banned Activities', icon: ShieldBan },
   { href: '/coding', label: 'Coding', icon: Code },
 
 ];

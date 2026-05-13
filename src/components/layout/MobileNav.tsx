@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Target, List, Bolt, Code, Menu, User, Settings, LogOut, X, Shield, Bell, Calendar, CalendarRange, Star, Map } from 'lucide-react';
+import { Home, Target, List, Code, Menu, Settings, LogOut, X, Calendar, CalendarRange, Star, ShieldBan } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -30,9 +30,9 @@ export function MobileNav() {
     { href: '/goals/monthly', label: 'Monthly Goals', icon: Calendar },
     { href: '/goals/yearly', label: 'Yearly Goals', icon: CalendarRange },
     { href: '/goals/lifetime', label: 'Lifetime Goals', icon: Star },
-    { href: '/side-quests', label: 'Side Quests', icon: Map },
+    { href: '/side-quests', label: 'Side Quests', icon: List },
     { href: '/stuff', label: 'Stuff To Do', icon: List },
-    { href: '/roadmap', label: 'Roadmap', icon: List },
+    { href: '/banned-activities', label: 'Banned Activities', icon: ShieldBan },
     { href: '/settings', label: 'Settings', icon: Settings },
 
   ];

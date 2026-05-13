@@ -24,18 +24,20 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  settings         Settings?
-  dailyGoals       DailyGoal[]
-  monthlyGoals     MonthlyGoal[]
-  yearlyGoals      YearlyGoal[]
-  lifetimeGoals    LifetimeGoal[]
-  sideQuests       SideQuest[]
-  roadmapItems     RoadmapItem[]
-  codingActivities CodingActivity[]
-  activityLogs     ActivityLog[]
-  contributionDays ContributionDay[]
-  refreshTokens    RefreshToken[]
-  stuffToDoItems   StuffToDoItem[]
+  settings              Settings?
+  dailyGoals            DailyGoal[]
+  monthlyGoals          MonthlyGoal[]
+  yearlyGoals           YearlyGoal[]
+  lifetimeGoals         LifetimeGoal[]
+  sideQuests            SideQuest[]
+  codingActivities      CodingActivity[]
+  activityLogs          ActivityLog[]
+  contributionDays      ContributionDay[]
+  refreshTokens         RefreshToken[]
+  stuffToDoItems        StuffToDoItem[]
+  bannedActivities      BannedActivity[]
+  punishmentRules       PunishmentRule[]
+  punishmentAssignments PunishmentAssignment[]
 
   @@map("users")
 }
@@ -263,39 +265,72 @@ model SideQuest {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// ROADMAP
+// BANNED ACTIVITIES
 // ─────────────────────────────────────────────────────────────────
-model RoadmapItem {
-  id          String    @id @default(cuid())
-  userId      String
-  parentId    String?
-  title       String
-  description String    @default("")
-  dueDate     DateTime?
-  completed   Boolean   @default(false)
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+model BannedActivity {
+  id           String    @id @default(cuid())
+  userId       String
+  title        String
+  reason       String?
+  category     String?
+  severity     Severity  @default(LOW)
+  notes        String    @default("")
+  timesBroken  Int       @default(0)
+  lastBrokenAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent     RoadmapItem?       @relation("RoadmapChildren", fields: [parentId], references: [id])
-  children   RoadmapItem[]      @relation("RoadmapChildren")
-  milestones RoadmapMilestone[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@map("roadmap_items")
+  @@map("banned_activities")
 }
 
-model RoadmapMilestone {
-  id        String   @id @default(cuid())
-  itemId    String
-  title     String
-  completed Boolean  @default(false)
-  createdAt DateTime @default(now())
+// ─────────────────────────────────────────────────────────────────
+// PUNISHMENT RULES
+// ─────────────────────────────────────────────────────────────────
+model PunishmentRule {
+  id                   String    @id @default(cuid())
+  userId               String
+  title                String
+  description          String    @default("")
+  appliesTo            AppliesTo
+  failedCountThreshold Int
+  punishmentType       String
+  punishmentAction     String
+  active               Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  item RoadmapItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignments PunishmentAssignment[]
 
-  @@map("roadmap_milestones")
+  @@index([userId])
+  @@map("punishment_rules")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// PUNISHMENT ASSIGNMENTS
+// ─────────────────────────────────────────────────────────────────
+model PunishmentAssignment {
+  id               String           @id @default(cuid())
+  userId           String
+  ruleId           String
+  sourceType       AppliesTo
+  sourceId         String?
+  sourcePeriod     String?
+  reason           String           @default("")
+  punishmentAction String
+  status           AssignmentStatus @default(PENDING)
+  assignedAt       DateTime         @default(now())
+  completedAt      DateTime?
+
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rule PunishmentRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ruleId, sourcePeriod])
+  @@index([userId])
+  @@map("punishment_assignments")
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -363,6 +398,24 @@ enum Priority {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AppliesTo {
+  TODO
+  MONTHLY
+  YEARLY
+}
+
+enum AssignmentStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
 }
 
 // ─────────────────────────────────────────────────────────────────

@@ -9,7 +9,7 @@ import {
   LifetimeGoal, Milestone, JournalEntry,
   CodingActivity,
   Subtask,
-  Goal, Quest, RoadmapItem, TodoItem, CodingStat,
+  Goal, Quest, TodoItem, CodingStat,
 } from '@/types';
 import { getDataStorageKey } from './data-persistence';
 
@@ -89,7 +89,6 @@ type Store = {
   // LEGACY
   goals: Goal[];
   quests: Quest[];
-  roadmap: RoadmapItem[];
   todos: TodoItem[];
   coding: CodingStat[];
 
@@ -103,7 +102,7 @@ type Store = {
   updateDailyGoal: (id: string, updates: Partial<DailyGoal>) => void;
   deleteDailyGoal: (id: string) => void;
   completeDailyGoal: (id: string) => void;
-  failStaleDailyGoals: () => void;   // call on app load
+  failStaleDailyGoals: () => void;
 
   // ── Monthly Goal actions ──
   addMonthlyGoal: (goal: MonthlyGoal) => void;
@@ -143,9 +142,6 @@ type Store = {
   addQuest: (quest: Quest) => void;
   updateQuest: (id: string, updates: Partial<Quest>) => void;
   deleteQuest: (id: string) => void;
-  addRoadmapItem: (item: RoadmapItem) => void;
-  updateRoadmapItem: (id: string, updates: Partial<RoadmapItem>) => void;
-  deleteRoadmapItem: (id: string) => void;
   addTodo: (todo: TodoItem) => void;
   updateTodo: (id: string, updates: Partial<TodoItem>) => void;
   deleteTodo: (id: string) => void;
@@ -168,7 +164,6 @@ export const useStore = create<Store>()(
       codingActivities: [],
       goals: [],
       quests: [],
-      roadmap: [],
       todos: [],
       coding: [],
 
@@ -464,12 +459,6 @@ export const useStore = create<Store>()(
         quests: s.quests.map((q) => q.id === id ? { ...q, ...updates } : q),
       })),
       deleteQuest: (id) => set((s) => ({ quests: s.quests.filter((q) => q.id !== id) })),
-
-      addRoadmapItem: (item) => set((s) => ({ roadmap: [...s.roadmap, item] })),
-      updateRoadmapItem: (id, updates) => set((s) => ({
-        roadmap: s.roadmap.map((r) => r.id === id ? { ...r, ...updates } : r),
-      })),
-      deleteRoadmapItem: (id) => set((s) => ({ roadmap: s.roadmap.filter((r) => r.id !== id) })),
 
       addTodo: (todo) => set((s) => ({ todos: [...s.todos, todo] })),
       updateTodo: (id, updates) => set((s) => ({

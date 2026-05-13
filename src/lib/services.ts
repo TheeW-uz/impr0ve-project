@@ -66,11 +66,22 @@ export const SettingsService = {
   updateSettings: (data: any) => api.patch('/settings', data),
 };
 
-export const RoadmapService = {
-  getAll: () => api.get('/roadmap'),
-  create: (data: any) => api.post('/roadmap', data),
-  update: (id: string, data: any) => api.patch(`/roadmap/${id}`, data),
-  delete: (id: string) => api.delete(`/roadmap/${id}`),
+export const BannedActivityService = {
+  getAll: () => api.get('/banned-activities'),
+  create: (data: any) => api.post('/banned-activities', data),
+  update: (id: string, data: any) => api.put(`/banned-activities/${id}`, data),
+  delete: (id: string) => api.delete(`/banned-activities/${id}`),
+  markBroken: (id: string) => api.post(`/banned-activities/${id}/break`),
+};
+
+export const PunishmentService = {
+  getRules: () => api.get('/punishment-rules'),
+  createRule: (data: any) => api.post('/punishment-rules', data),
+  updateRule: (id: string, data: any) => api.put(`/punishment-rules/${id}`, data),
+  deleteRule: (id: string) => api.delete(`/punishment-rules/${id}`),
+  getAssignments: (status?: string) => api.get(`/punishment-assignments${status ? `?status=${status}` : ''}`),
+  updateAssignment: (id: string, data: any) => api.put(`/punishment-assignments/${id}`, data),
+  evaluate: () => api.post('/punishments/evaluate'),
 };
 
 export const UserService = {
