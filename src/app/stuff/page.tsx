@@ -249,7 +249,7 @@ export default function StuffToDoPage() {
                 <StuffCard 
                   key={item.id} 
                   item={item} 
-                  onToggle={(completed) => toggleMutation.mutate({ id: item.id, completed })}
+                  onToggle={(completed: boolean) => toggleMutation.mutate({ id: item.id, completed })}
                   onEdit={() => { setEditingItem(item); setIsModalOpen(true); }}
                   onDelete={() => deleteMutation.mutate(item.id)}
                 />
