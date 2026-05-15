@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   if (!auth) return err('Unauthorized', 401);
 
   // Return all contribution days for the user to build the graph
-  const days = await prisma.contributionDay.findMany({
+  const days = await prisma.codingContributionDay.findMany({
     where: { userId: auth.sub },
     orderBy: { dateKey: 'asc' },
   });

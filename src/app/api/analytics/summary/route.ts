@@ -16,9 +16,9 @@ export async function GET(req: NextRequest) {
   ] = await Promise.all([
     prisma.dailyGoal.count({ where: { userId: auth.sub } }),
     prisma.dailyGoal.count({ where: { userId: auth.sub, completed: true } }),
-    prisma.codingActivity.aggregate({
+    prisma.codingSession.aggregate({
       where: { userId: auth.sub },
-      _sum: { minutesSpent: true }
+      _sum: { durationMinutes: true }
     }),
     prisma.user.findUnique({
       where: { id: auth.sub },
@@ -38,8 +38,8 @@ export async function GET(req: NextRequest) {
       completionRate: totalGoals > 0 ? (completedGoals / totalGoals) * 100 : 0
     },
     coding: {
-      totalMinutes: totalCodingMinutes._sum.minutesSpent || 0,
-      hours: Math.round((totalCodingMinutes._sum.minutesSpent || 0) / 60)
+      totalMinutes: totalCodingMinutes._sum.durationMinutes || 0,
+      hours: Math.round((totalCodingMinutes._sum.durationMinutes || 0) / 60)
     },
     user: totalXp,
     recentActivity: recentLogs

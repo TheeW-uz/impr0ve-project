@@ -57,6 +57,9 @@ export const CodingService = {
   deleteSession: (id: string) => api.delete(`/coding/sessions/${id}`),
   getStats: () => api.get('/coding/stats'),
   getContributions: () => api.get('/coding/contributions'),
+  // Aliases for hooks
+  getActivities: (params?: any) => api.get('/coding/sessions', { params }),
+  logActivity: (data: any) => api.post('/coding/sessions', data),
 };
 
 export const DashboardService = {
@@ -99,6 +102,7 @@ export const StuffToDoService = {
   delete: (id: string) => api.delete(`/stuff-to-do/${id}`),
 };
 
-
-
-
+export const AnalyticsService = {
+  getContributionGraph: () => api.get('/analytics/contribution-graph'),
+  getSummary: () => api.get('/analytics/summary'),
+};
