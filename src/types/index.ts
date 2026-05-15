@@ -113,12 +113,18 @@ export interface LifetimeGoal {
 // ─── Coding Activity ──────────────────────────────────
 export interface CodingActivity {
   id: string;
-  dateKey: string; // "2026-05-12"
+  userId: string;
   title: string;
-  description: string;
-  minutesSpent: number;
-  language?: string;
-  createdAt: string;
+  projectName: string;
+  language: string;
+  durationMinutes: number;
+  problemsSolved: number;
+  difficulty: string;
+  notes: string;
+  completed: boolean;
+  sessionDate: string; // ISO
+  createdAt: string; // ISO
+  updatedAt: string; // ISO
 }
 
 // ─── Legacy types (kept for backward compat) ──────────

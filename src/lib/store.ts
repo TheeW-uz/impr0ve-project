@@ -37,7 +37,7 @@ export function displayMonth(monthKey: string): string {
 // ─── Analytics helpers ────────────────────────────────────────────────────────
 export function computeCodingStreak(activities: CodingActivity[]): { current: number; longest: number } {
   if (!activities.length) return { current: 0, longest: 0 };
-  const days = Array.from(new Set(activities.map((a) => a.dateKey))).sort().reverse();
+  const days = Array.from(new Set(activities.map((a) => a.sessionDate.split('T')[0]))).sort().reverse();
   if (!days.length) return { current: 0, longest: 0 };
 
   let current = 0;
