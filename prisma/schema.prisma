@@ -11,7 +11,6 @@ datasource db {
 
 // ─────────────────────────────────────────────────────────────────
 // USER
-// ─────────────────────────────────────────────────────────────────
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -30,21 +29,23 @@ model User {
   yearlyGoals           YearlyGoal[]
   lifetimeGoals         LifetimeGoal[]
   sideQuests            SideQuest[]
-  codingActivities      CodingActivity[]
   activityLogs          ActivityLog[]
-  contributionDays      ContributionDay[]
   refreshTokens         RefreshToken[]
   stuffToDoItems        StuffToDoItem[]
   bannedActivities      BannedActivity[]
   punishmentRules       PunishmentRule[]
   punishmentAssignments PunishmentAssignment[]
 
+  // Coding System
+  codingSessions        CodingSession[]
+  codingContributions   CodingContributionDay[]
+  codingStats           CodingStats?
+
   @@map("users")
 }
 
 // ─────────────────────────────────────────────────────────────────
 // SETTINGS
-// ─────────────────────────────────────────────────────────────────
 model Settings {
   id              String   @id @default(cuid())
   userId          String   @unique
@@ -64,7 +65,6 @@ model Settings {
 
 // ─────────────────────────────────────────────────────────────────
 // REFRESH TOKEN
-// ─────────────────────────────────────────────────────────────────
 model RefreshToken {
   id        String   @id @default(cuid())
   userId    String
@@ -80,7 +80,6 @@ model RefreshToken {
 
 // ─────────────────────────────────────────────────────────────────
 // DAILY GOAL
-// ─────────────────────────────────────────────────────────────────
 model DailyGoal {
   id                  String    @id @default(cuid())
   userId              String
@@ -119,7 +118,6 @@ model DailySubtask {
 
 // ─────────────────────────────────────────────────────────────────
 // MONTHLY GOAL
-// ─────────────────────────────────────────────────────────────────
 model MonthlyGoal {
   id          String    @id @default(cuid())
   userId      String
@@ -157,7 +155,6 @@ model MonthlySubtask {
 
 // ─────────────────────────────────────────────────────────────────
 // YEARLY GOAL
-// ─────────────────────────────────────────────────────────────────
 model YearlyGoal {
   id          String    @id @default(cuid())
   userId      String
@@ -195,7 +192,6 @@ model YearlySubtask {
 
 // ─────────────────────────────────────────────────────────────────
 // LIFETIME GOAL
-// ─────────────────────────────────────────────────────────────────
 model LifetimeGoal {
   id             String    @id @default(cuid())
   userId         String
@@ -245,7 +241,6 @@ model LifetimeJournal {
 
 // ─────────────────────────────────────────────────────────────────
 // SIDE QUEST
-// ─────────────────────────────────────────────────────────────────
 model SideQuest {
   id            String    @id @default(cuid())
   userId        String
@@ -266,7 +261,6 @@ model SideQuest {
 
 // ─────────────────────────────────────────────────────────────────
 // BANNED ACTIVITIES
-// ─────────────────────────────────────────────────────────────────
 model BannedActivity {
   id           String    @id @default(cuid())
   userId       String
@@ -288,7 +282,6 @@ model BannedActivity {
 
 // ─────────────────────────────────────────────────────────────────
 // PUNISHMENT RULES
-// ─────────────────────────────────────────────────────────────────
 model PunishmentRule {
   id                   String    @id @default(cuid())
   userId               String
@@ -311,7 +304,6 @@ model PunishmentRule {
 
 // ─────────────────────────────────────────────────────────────────
 // PUNISHMENT ASSIGNMENTS
-// ─────────────────────────────────────────────────────────────────
 model PunishmentAssignment {
   id               String           @id @default(cuid())
   userId           String
@@ -334,47 +326,64 @@ model PunishmentAssignment {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// CODING ACTIVITY
+// CODING SYSTEM (REBUILT)
 // ─────────────────────────────────────────────────────────────────
-model CodingActivity {
-  id           String   @id @default(cuid())
-  userId       String
-  dateKey      String
-  title        String
-  description  String   @default("")
-  minutesSpent Int
-  language     String?
-  xpEarned     Int      @default(0)
-  createdAt    DateTime @default(now())
+model CodingSession {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String
+  projectName     String   @default("General")
+  language        String   @default("Other")
+  durationMinutes Int      @default(0)
+  problemsSolved  Int      @default(0)
+  difficulty      String   @default("Medium") // Easy, Medium, Hard, Expert
+  notes           String   @default("")
+  completed       Boolean  @default(true)
+  sessionDate     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, dateKey])
-  @@map("coding_activities")
+  @@index([userId, sessionDate])
+  @@map("coding_sessions")
 }
 
-// ─────────────────────────────────────────────────────────────────
-// CONTRIBUTION GRAPH
-// ─────────────────────────────────────────────────────────────────
-model ContributionDay {
+model CodingContributionDay {
   id           String   @id @default(cuid())
   userId       String
-  dateKey      String
+  date         DateTime
+  dateKey      String   // YYYY-MM-DD for easy querying
   count        Int      @default(0)
-  xpEarned     Int      @default(0)
-  minutesSpent Int      @default(0)
+  totalMinutes Int      @default(0)
+  intensity    Int      @default(0) // 0-4
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, dateKey])
-  @@map("contribution_days")
+  @@map("coding_contribution_days")
+}
+
+model CodingStats {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  totalSessions     Int      @default(0)
+  totalMinutes      Int      @default(0)
+  totalProblems     Int      @default(0)
+  currentStreak     Int      @default(0)
+  longestStreak     Int      @default(0)
+  lastSessionDate   DateTime?
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("coding_stats")
 }
 
 // ─────────────────────────────────────────────────────────────────
 // ACTIVITY LOG
-// ─────────────────────────────────────────────────────────────────
 model ActivityLog {
   id        String   @id @default(cuid())
   userId    String
@@ -392,7 +401,6 @@ model ActivityLog {
 
 // ─────────────────────────────────────────────────────────────────
 // ENUMS
-// ─────────────────────────────────────────────────────────────────
 enum Priority {
   LOW
   MEDIUM
@@ -420,7 +428,6 @@ enum AssignmentStatus {
 
 // ─────────────────────────────────────────────────────────────────
 // STUFF TO DO (Lifestyle/Activity Planner)
-// ─────────────────────────────────────────────────────────────────
 model StuffToDoItem {
   id          String    @id @default(cuid())
   userId      String

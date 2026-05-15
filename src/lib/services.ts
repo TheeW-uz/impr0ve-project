@@ -51,14 +51,18 @@ export const QuestService = {
 };
 
 export const CodingService = {
-  getActivities: (params?: any) => api.get('/coding', { params }),
-  logActivity: (data: any) => api.post('/coding', data),
-  deleteActivity: (id: string) => api.delete(`/coding/${id}`),
+  getSessions: () => api.get('/coding/sessions'),
+  createSession: (data: any) => api.post('/coding/sessions', data),
+  updateSession: (id: string, data: any) => api.put(`/coding/sessions/${id}`, data),
+  deleteSession: (id: string) => api.delete(`/coding/sessions/${id}`),
+  getStats: () => api.get('/coding/stats'),
+  getContributions: () => api.get('/coding/contributions'),
 };
 
-export const AnalyticsService = {
-  getContributionGraph: () => api.get('/analytics/contribution-graph'),
-  getSummary: () => api.get('/analytics/summary'),
+export const DashboardService = {
+  getSummary: () => api.get('/dashboard/summary'),
+  getRecentActivity: (limit?: number) => api.get(`/dashboard/recent-activity${limit ? `?limit=${limit}` : ''}`),
+  getStats: () => api.get('/dashboard/stats'),
 };
 
 export const SettingsService = {

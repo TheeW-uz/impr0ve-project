@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 
 import { useDailyGoals, useCreateDailyGoal, useUpdateDailyGoal } from '@/lib/hooks';
-import { GoalService } from '@/lib/services';
+import { GoalService, DashboardService } from '@/lib/services';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isPast, isFuture, startOfDay } from 'date-fns';
 import { DailyGoalCard } from '@/components/goals/DailyGoalCard';
@@ -26,6 +27,11 @@ export default function ToDoPage() {
 
   const monthKey = format(currentDate, 'yyyy-MM');
   const { data: goals = [], isLoading } = useDailyGoals({ monthKey });
+
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: () => DashboardService.getSummary().then(res => res.data.data.summary),
+  });
 
   // Generate days for the current month
   const days = useMemo(() => {
@@ -82,10 +88,19 @@ export default function ToDoPage() {
             Today
           </Button>
           <div className="h-6 w-px bg-white/10 mx-1" />
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 rounded-xl border border-orange-500/20 text-orange-400">
-             <Flame className="w-4 h-4 fill-orange-400/20" />
-             <span className="text-xs font-black">7 DAY STREAK</span>
+          
+          <div className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all",
+            (summary?.todo?.streak || 0) > 0 
+              ? "bg-orange-500/10 border-orange-500/20 text-orange-400 shadow-lg shadow-orange-500/5" 
+              : "bg-white/5 border-white/5 text-gray-600"
+          )}>
+             <Flame className={cn("w-4 h-4", (summary?.todo?.streak || 0) > 0 && "fill-orange-400/20")} />
+             <span className="text-xs font-black uppercase tracking-widest">
+               {summaryLoading ? '...' : `${summary?.todo?.streak || 0} DAY STREAK`}
+             </span>
           </div>
+
           <div className="h-6 w-px bg-white/10 mx-1" />
           <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-10 w-10 rounded-xl hover:bg-white/10">
             <ChevronRight className="w-5 h-5" />

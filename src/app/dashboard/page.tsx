@@ -1,12 +1,13 @@
 'use client';
 
-import { useStore, computeCodingStreak, todayKey, thisMonthKey, thisYearKey } from '@/lib/store';
+import { useQuery } from '@tanstack/react-query';
+import { DashboardService } from '@/lib/services';
 import { useAuth } from '@/lib/auth-store';
 import { motion } from 'framer-motion';
 import {
   Target, Flame, TrendingUp, CheckCircle, XCircle,
   Zap, BarChart3, Calendar, Infinity, Code, Award,
-  Sun, CalendarDays, CalendarRange
+  Sun, CalendarDays, CalendarRange, Loader2, AlertCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProgressRing } from '@/components/dashboard/ProgressRing';
@@ -21,68 +22,47 @@ const fadeUp = {
 };
 
 export default function DashboardPage() {
-  const {
-    dailyGoals, monthlyGoals, yearlyGoals, lifetimeGoals,
-    codingActivities,
-  } = useStore();
-
-  // ── Real computed stats ────────────────────────────────────────────────────
-  const today = todayKey();
-  const todayGoals = dailyGoals.filter((g) => g.dateKey === today);
-  const todayDone = todayGoals.filter((g) => g.completed).length;
-  const todayTotal = todayGoals.length;
-  const todayRate = todayTotal > 0 ? Math.round((todayDone / todayTotal) * 100) : 0;
-
-  const allDailyDone = dailyGoals.filter((g) => g.completed).length;
-  const allDailyFailed = dailyGoals.filter((g) => g.failed).length;
-  const allDailyTotal = dailyGoals.length;
-  const overallDailyRate = allDailyTotal > 0 ? Math.round((allDailyDone / allDailyTotal) * 100) : 0;
-
-  const thisMonth = thisMonthKey();
-  const monthGoals = monthlyGoals.filter((g) => g.monthKey === thisMonth);
-  const monthDone = monthGoals.filter((g) => g.completed).length;
-  const monthTotal = monthGoals.length;
-  const monthRate = monthTotal > 0 ? Math.round((monthDone / monthTotal) * 100) : 0;
-
-  const thisYear = thisYearKey();
-  const yearGoals = yearlyGoals.filter((g) => g.yearKey === thisYear);
-  const yearDone = yearGoals.filter((g) => g.completed).length;
-  const yearTotal = yearGoals.length;
-  const yearRate = yearTotal > 0 ? Math.round((yearDone / yearTotal) * 100) : 0;
-
-  const lifetimeDone = lifetimeGoals.filter((g) => g.completed).length;
-  const lifetimeAvgProgress = lifetimeGoals.length > 0
-    ? Math.round(lifetimeGoals.reduce((a, g) => a + g.progress, 0) / lifetimeGoals.length)
-    : 0;
-
-  const { current: codingStreak, longest: longestCodingStreak } = computeCodingStreak(codingActivities);
-  const todayCodingMinutes = codingActivities.filter((a) => a.dateKey === today).reduce((a, c) => a + c.minutesSpent, 0);
-
-  // Consistency: days with at least 1 completed daily goal / total days with any daily goals
-  const dayKeys = Array.from(new Set(dailyGoals.map((g) => g.dateKey)));
-  const daysWithCompletion = dayKeys.filter((dk) => dailyGoals.some((g) => g.dateKey === dk && g.completed)).length;
-  const consistencyRate = dayKeys.length > 0 ? Math.round((daysWithCompletion / dayKeys.length) * 100) : 0;
-
-  // Mini weekly performance (last 7 days)
-  const weeklyBars = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const dayGoals = dailyGoals.filter((g) => g.dateKey === key);
-    const done = dayGoals.filter((g) => g.completed).length;
-    const total = dayGoals.length;
-    return {
-      label: d.toLocaleDateString('en-US', { weekday: 'short' }),
-      rate: total > 0 ? Math.round((done / total) * 100) : 0,
-      hasGoals: total > 0,
-    };
+  const { user } = useAuth();
+  
+  const { data: summaryData, isLoading, isError } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: () => DashboardService.getSummary().then(res => res.data.data.summary),
   });
 
-  const totalGoalsEver = allDailyTotal + monthlyGoals.length + yearlyGoals.length + lifetimeGoals.length;
-  const totalDoneEver = allDailyDone + monthlyGoals.filter((g) => g.completed).length
-    + yearlyGoals.filter((g) => g.completed).length + lifetimeDone;
-  const totalFailedEver = allDailyFailed + monthlyGoals.filter((g) => g.failed).length
-    + yearlyGoals.filter((g) => g.failed).length;
+  const { data: statsData } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: () => DashboardService.getStats().then(res => res.data.data),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
+        <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Initializing Dashboard...</p>
+      </div>
+    );
+  }
+
+  if (isError || !summaryData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
+        <AlertCircle className="w-12 h-12 text-red-500 opacity-50" />
+        <h2 className="text-xl font-black text-white">Critical System Failure</h2>
+        <p className="text-gray-500 max-w-md">We couldn't establish a connection to the neural interface. Please check your connection and try again.</p>
+        <Button onClick={() => window.location.reload()} variant="outline" className="mt-4 border-white/10 hover:bg-white/5">
+          Reboot System
+        </Button>
+      </div>
+    );
+  }
+
+  const { todo, goals, quests, coding, banned, punishments, stuffToDo, productivityScore } = summaryData;
+
+  const totalGoalsEver = todo.total + goals.monthly.total + goals.yearly.total + goals.lifetime.total;
+  const totalDoneEver = todo.completed + goals.monthly.completed + goals.yearly.completed + goals.lifetime.completed;
+  const totalFailedEver = todo.failed;
+
+  const weeklyBars = statsData || [];
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 pb-10 lg:pb-0">
@@ -90,10 +70,10 @@ export default function DashboardPage() {
       <header className="px-1 md:px-0">
         <div className="flex items-center gap-3 md:gap-4 mb-1">
           <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-400 font-bold uppercase text-xs md:text-sm">
-            {useAuth.getState().user?.username.substring(0, 2)}
+            {user?.username?.substring(0, 2)}
           </div>
           <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight truncate">
-            Welcome back, {useAuth.getState().user?.username}
+            Welcome back, {user?.username}
           </h1>
         </div>
         <p className="text-gray-400 mt-1 text-[11px] md:text-sm md:pl-14">
@@ -117,29 +97,29 @@ export default function DashboardPage() {
         {[
           {
             label: "Today's Goals",
-            value: todayTotal === 0 ? '—' : `${todayDone}/${todayTotal}`,
-            sub: todayTotal > 0 ? `${todayRate}% done` : 'No goals yet',
+            value: todo.today.total === 0 ? '—' : `${todo.today.completed}/${todo.today.total}`,
+            sub: todo.today.total > 0 ? `${Math.round((todo.today.completed / todo.today.total) * 100)}% done` : 'No goals yet',
             icon: Sun, color: 'text-amber-400', bg: 'bg-amber-500/10',
             href: '/todo',
           },
           {
             label: 'Coding Streak',
-            value: codingStreak === 0 ? '0 days' : `${codingStreak} days`,
-            sub: longestCodingStreak > 0 ? `Best: ${longestCodingStreak} days` : 'Log sessions',
-            icon: Flame, color: codingStreak > 0 ? 'text-orange-400' : 'text-gray-500', bg: 'bg-orange-500/10',
+            value: coding.currentStreak === 0 ? '0 days' : `${coding.currentStreak} days`,
+            sub: coding.longestStreak > 0 ? `Best: ${coding.longestStreak} days` : 'Log sessions',
+            icon: Flame, color: coding.currentStreak > 0 ? 'text-orange-400' : 'text-gray-500', bg: 'bg-orange-500/10',
             href: '/coding',
           },
           {
-            label: 'Consistency',
-            value: `${consistencyRate}%`,
-            sub: `${daysWithCompletion}/${dayKeys.length} active`,
+            label: 'Productivity',
+            value: `${productivityScore}%`,
+            sub: 'Based on real activity',
             icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10',
             href: '/todo',
           },
           {
-            label: 'Total Progress',
+            label: 'Total Completed',
             value: totalDoneEver,
-            sub: `${totalGoalsEver} goals ever`,
+            sub: `${totalGoalsEver} items tracked`,
             icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10',
             href: '/goals/monthly',
           },
@@ -176,14 +156,14 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 md:p-6 pt-2">
-              {weeklyBars.every((b) => !b.hasGoals) ? (
+              {weeklyBars.length === 0 || weeklyBars.every((b: any) => !b.hasGoals) ? (
                 <div className="h-32 md:h-40 flex flex-col items-center justify-center text-gray-600">
                   <BarChart3 className="w-8 h-8 mb-2 opacity-20" />
                   <p className="text-xs md:text-sm">Add daily goals to see trends</p>
                 </div>
               ) : (
                 <div className="flex items-end gap-1 md:gap-2 h-32 md:h-40">
-                  {weeklyBars.map((bar, i) => (
+                  {weeklyBars.map((bar: any, i: number) => (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
                       <span className="text-[8px] md:text-[10px] font-bold text-gray-500">
                         {bar.hasGoals ? `${bar.rate}%` : ''}
@@ -216,13 +196,15 @@ export default function DashboardPage() {
         {/* Today's progress ring */}
         <motion.div custom={5} variants={fadeUp} initial="hidden" animate="show">
           <Card className="bg-white/5 border-white/5 flex flex-col items-center justify-center p-6 h-full">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4 text-center">Today's Completion</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4 text-center">Today's Progress</p>
             <div className="scale-75 md:scale-100 origin-center">
-              <ProgressRing percent={todayRate} size={140} label="" />
+              <ProgressRing percent={todo.today.total > 0 ? Math.round((todo.today.completed / todo.today.total) * 100) : 0} size={140} label="" />
             </div>
-            <p className="text-2xl md:text-3xl font-black text-white mt-1 md:mt-3">{todayRate}%</p>
+            <p className="text-2xl md:text-3xl font-black text-white mt-1 md:mt-3">
+              {todo.today.total > 0 ? Math.round((todo.today.completed / todo.today.total) * 100) : 0}%
+            </p>
             <p className="text-xs text-gray-500 mt-1 text-center">
-              {todayTotal === 0 ? 'No goals yet' : `${todayDone}/${todayTotal} completed`}
+              {todo.today.total === 0 ? 'No goals today' : `${todo.today.completed}/${todo.today.total} completed`}
             </p>
           </Card>
         </motion.div>
@@ -233,15 +215,15 @@ export default function DashboardPage() {
         <motion.div custom={6} variants={fadeUp} initial="hidden" animate="show">
           <Card className="bg-white/5 border-white/5">
             <CardHeader className="p-5 pb-2">
-              <CardTitle className="text-base font-bold">Goal Breakdown</CardTitle>
+              <CardTitle className="text-base font-bold">Scope Analysis</CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-3 space-y-4">
               {[
-                { label: 'Daily', done: allDailyDone, failed: allDailyFailed, total: allDailyTotal, rate: overallDailyRate, color: 'bg-amber-500', icon: Sun, href: '/todo' },
-                { label: 'Monthly', done: monthDone, failed: monthlyGoals.filter(g=>g.failed).length, total: monthTotal, rate: monthRate, color: 'bg-blue-500', icon: CalendarDays, href: '/goals/monthly' },
-                { label: 'Yearly', done: yearDone, failed: yearlyGoals.filter(g=>g.failed).length, total: yearTotal, rate: yearRate, color: 'bg-purple-500', icon: CalendarRange, href: '/goals/yearly' },
-                { label: 'Lifetime', done: lifetimeDone, failed: 0, total: lifetimeGoals.length, rate: lifetimeAvgProgress, color: 'bg-emerald-500', icon: Infinity, href: '/goals/lifetime' },
-              ].map(({ label, done, failed, total, rate, color, icon: Icon, href }) => (
+                { label: 'Daily Goals', done: todo.completed, total: todo.total, rate: todo.total > 0 ? Math.round((todo.completed/todo.total)*100) : 0, color: 'bg-amber-500', icon: Sun, href: '/todo' },
+                { label: 'Monthly Goals', done: goals.monthly.completed, total: goals.monthly.total, rate: goals.monthly.progress, color: 'bg-blue-500', icon: CalendarDays, href: '/goals/monthly' },
+                { label: 'Yearly Goals', done: goals.yearly.completed, total: goals.yearly.total, rate: goals.yearly.progress, color: 'bg-purple-500', icon: CalendarRange, href: '/goals/yearly' },
+                { label: 'Lifetime Goals', done: goals.lifetime.completed, total: goals.lifetime.total, rate: goals.lifetime.avgProgress, color: 'bg-emerald-500', icon: Infinity, href: '/goals/lifetime' },
+              ].map(({ label, done, total, rate, color, icon: Icon, href }) => (
                 <Link key={label} href={href} className="block group/item">
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
@@ -252,12 +234,11 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-2 text-[11px]">
                         {total > 0 ? (
                           <>
-                            <span className="text-green-400">{done} done</span>
-                            {failed > 0 && <span className="text-red-400">{failed} failed</span>}
+                            <span className="text-green-400">{done} completed</span>
                             <span className="text-gray-500">{total} total</span>
                           </>
                         ) : (
-                          <span className="text-gray-600">No goals</span>
+                          <span className="text-gray-600">Zero state</span>
                         )}
                       </div>
                     </div>
@@ -280,27 +261,52 @@ export default function DashboardPage() {
         <motion.div custom={7} variants={fadeUp} initial="hidden" animate="show" className="space-y-4">
           <MotivationalWidget />
 
-          {/* Coding today */}
-          <Card className="bg-white/5 border-white/5">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-emerald-500/10">
-                <Code className="w-5 h-5 text-emerald-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Coding Today</p>
-                <p className="text-xl font-black text-white">
-                  {todayCodingMinutes > 0
-                    ? `${todayCodingMinutes >= 60 ? `${Math.floor(todayCodingMinutes / 60)}h ${todayCodingMinutes % 60}m` : `${todayCodingMinutes}min`}`
-                    : 'No sessions yet'}
-                </p>
-              </div>
-              <Link href="/coding">
-                <Button variant="ghost" size="sm" className="text-emerald-400 hover:text-emerald-300">
-                  Log →
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          {/* Activity pulse */}
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="bg-white/5 border-white/5">
+              <CardContent className="p-5">
+                 <div className="flex items-center gap-3 mb-3">
+                   <div className="p-2 rounded-lg bg-emerald-500/10">
+                     <Code className="w-4 h-4 text-emerald-400" />
+                   </div>
+                   <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Coding</span>
+                 </div>
+                 <p className="text-xl font-black text-white">{coding.totalHours}h</p>
+                 <p className="text-[10px] text-gray-500 mt-1">Total invested</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/5">
+              <CardContent className="p-5">
+                 <div className="flex items-center gap-3 mb-3">
+                   <div className="p-2 rounded-lg bg-red-500/10">
+                     <XCircle className="w-4 h-4 text-red-400" />
+                   </div>
+                   <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Banned</span>
+                 </div>
+                 <p className="text-xl font-black text-white">{banned.brokenCount}</p>
+                 <p className="text-[10px] text-gray-500 mt-1">Times broken</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Pending punishments */}
+          {punishments.pending > 0 && (
+            <Link href="/punishments">
+              <Card className="bg-red-500/10 border-red-500/20 hover:bg-red-500/20 transition-colors">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Zap className="w-5 h-5 text-red-500" />
+                    <div>
+                      <p className="text-sm font-bold text-white">{punishments.pending} Pending Punishments</p>
+                      <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest">Action required immediately</p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300">Resolve →</Button>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
         </motion.div>
       </div>
     </div>

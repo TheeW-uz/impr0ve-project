@@ -5,7 +5,8 @@ import { Menu, X, Home, Target, ShieldBan, List, Code, Flame, Calendar, Calendar
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useStore, computeCodingStreak } from '@/lib/store';
+import { useQuery } from '@tanstack/react-query';
+import { DashboardService } from '@/lib/services';
 import { useAuth } from '@/lib/auth-store';
 import { LogOut, Settings, User as UserIcon, ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -25,16 +26,21 @@ const navItems = [
   { href: '/stuff', label: 'Stuff To Do', icon: List },
   { href: '/banned-activities', label: 'Banned Activities', icon: ShieldBan },
   { href: '/coding', label: 'Coding', icon: Code },
-
 ];
 
 export function Sidebar() {
   const [open, setOpen] = useState(true);
   const [goalsExpanded, setGoalsExpanded] = useState(true);
   const pathname = usePathname();
-  const { codingActivities } = useStore();
-  const { current: streak } = computeCodingStreak(codingActivities);
   const { user, logout } = useAuth();
+  
+  const { data: summary } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: () => DashboardService.getSummary().then(res => res.data.data.summary),
+    enabled: !!user,
+  });
+
+  const streak = summary?.coding?.currentStreak || 0;
 
   const isPublicRoute = ['/login', '/register', '/forgot-password', '/'].includes(pathname);
 
@@ -163,11 +169,11 @@ export function Sidebar() {
                 <div className="flex items-center gap-2">
                   <Flame className={cn('w-5 h-5', streak > 0 ? 'text-orange-400' : 'text-gray-600')} />
                   <p className={cn('text-lg font-black', streak > 0 ? 'text-white' : 'text-gray-600')}>
-                    {streak > 0 ? `${streak} day${streak !== 1 ? 's' : ''}` : 'Start your streak'}
+                    {streak > 0 ? `${streak} day${streak !== 1 ? 's' : ''}` : '0 days'}
                   </p>
                 </div>
                 {streak === 0 && (
-                  <p className="text-[10px] text-gray-600 mt-1">Log coding activity daily</p>
+                  <p className="text-[10px] text-gray-600 mt-1">Start your journey today</p>
                 )}
               </div>
             </div>

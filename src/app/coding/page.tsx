@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
 import { CodingService } from '@/lib/services';
 import { useAuth } from '@/lib/auth-store';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,41 +9,37 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Terminal, Flame, Plus, X, Trash2, Code,
-  Github, Clock, Zap, BarChart3, Calendar, Cpu, Activity
+  Github, Clock, Zap, BarChart3, Calendar, Cpu, Activity,
+  Trophy, BookOpen, Layers, Edit2, Loader2, Save
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const LANGUAGES = ['JavaScript', 'TypeScript', 'Python', 'Rust', 'Go', 'Java', 'C++', 'CSS', 'HTML', 'Other'];
+const DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Expert'];
 
-function ContributionGraph({ activities }: { activities: any[] }) {
+function ContributionGraph({ contributions }: { contributions: any[] }) {
   const today = new Date();
-  const days: { key: string; date: Date; count: number; minutes: number }[] = [];
+  const days: { key: string; date: Date; intensity: number; minutes: number; count: number }[] = [];
 
+  // Generate 1 year of days
   for (let i = 364; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const key = d.toISOString().split('T')[0];
-    const dayActivities = activities.filter((a) => a.dateKey === key);
+    const contribution = contributions.find((c) => c.dateKey === key);
+    
     days.push({
       key,
       date: d,
-      count: dayActivities.length,
-      minutes: dayActivities.reduce((a, act) => a + act.minutesSpent, 0),
+      intensity: contribution?.intensity || 0,
+      minutes: contribution?.totalMinutes || 0,
+      count: contribution?.count || 0,
     });
   }
-
-  const maxMinutes = Math.max(...days.map((d) => d.minutes), 1);
-
-  const getLevel = (minutes: number) => {
-    if (minutes === 0) return 0;
-    const ratio = minutes / maxMinutes;
-    if (ratio < 0.25) return 1;
-    if (ratio < 0.5) return 2;
-    if (ratio < 0.75) return 3;
-    return 4;
-  };
 
   const levelColors = [
     'bg-white/5',
@@ -57,10 +52,15 @@ function ContributionGraph({ activities }: { activities: any[] }) {
   const weeks: typeof days[] = [];
   let week: typeof days = [];
   const firstDay = days[0].date.getDay();
-  for (let i = 0; i < firstDay; i++) week.push({ key: '', date: new Date(), count: 0, minutes: 0 });
+  
+  for (let i = 0; i < firstDay; i++) week.push({ key: '', date: new Date(), intensity: 0, minutes: 0, count: 0 });
+  
   days.forEach((d) => {
     week.push(d);
-    if (week.length === 7) { weeks.push(week); week = []; }
+    if (week.length === 7) { 
+      weeks.push(week); 
+      week = []; 
+    }
   });
   if (week.length > 0) weeks.push(week);
 
@@ -73,12 +73,12 @@ function ContributionGraph({ activities }: { activities: any[] }) {
               day.key ? (
                 <div
                   key={day.key}
-                  title={day.minutes > 0
+                  title={day.count > 0
                     ? `${day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${day.minutes}min, ${day.count} sessions`
                     : day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   className={cn(
                     'w-[11px] h-[11px] rounded-sm transition-all hover:ring-1 hover:ring-emerald-400 cursor-default',
-                    levelColors[getLevel(day.minutes)]
+                    levelColors[day.intensity]
                   )}
                 />
               ) : (
@@ -99,149 +99,226 @@ function ContributionGraph({ activities }: { activities: any[] }) {
   );
 }
 
-function LogActivityForm({ onClose }: { onClose: () => void }) {
+function SessionModal({ session, onClose }: { session?: any, onClose: () => void }) {
   const queryClient = useQueryClient();
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [minutes, setMinutes] = useState('60');
-  const [language, setLanguage] = useState('');
+  const [formData, setFormData] = useState({
+    title: session?.title || '',
+    projectName: session?.projectName || '',
+    language: session?.language || 'Other',
+    durationMinutes: session?.durationMinutes || 60,
+    problemsSolved: session?.problemsSolved || 0,
+    difficulty: session?.difficulty || 'Medium',
+    notes: session?.notes || '',
+    completed: session?.completed ?? true,
+    sessionDate: session?.sessionDate ? new Date(session.sessionDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+  });
 
-  const createMutation = useMutation({
-    mutationFn: (data: any) => CodingService.logActivity(data),
+  const mutation = useMutation({
+    mutationFn: (data: any) => session 
+      ? CodingService.updateSession(session.id, data) 
+      : CodingService.createSession(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coding'] });
+      queryClient.invalidateQueries({ queryKey: ['coding-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['coding-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['coding-contributions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      toast.success(session ? 'Session updated' : 'Session logged');
       onClose();
+    },
+    onError: () => {
+      toast.error('Failed to save session');
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !minutes) return;
-    createMutation.mutate({
-      title: title.trim(),
-      description: description.trim(),
-      minutesSpent: parseInt(minutes) || 0,
-      language: language || undefined,
-    });
+    if (!formData.title.trim()) return;
+    mutation.mutate(formData);
   };
 
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-      <Card className="border-emerald-500/20 bg-emerald-500/5 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-emerald-500/5">
-        <CardContent className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="flex justify-between items-center">
-              <div>
-                 <h3 className="text-2xl font-black text-white tracking-tighter flex items-center gap-2">
-                   <Cpu className="w-6 h-6 text-emerald-400" /> System Log
-                 </h3>
-                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-1">Capture your technical progress</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        className="w-full max-w-2xl"
+      >
+        <Card className="border-emerald-500/20 bg-gray-950 rounded-[2.5rem] overflow-hidden shadow-2xl">
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-2xl font-black text-white tracking-tighter flex items-center gap-2">
+                    <Cpu className="w-6 h-6 text-emerald-400" /> 
+                    {session ? 'Edit Session' : 'New Coding Sprint'}
+                  </h3>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-1">
+                    {session ? 'Adjust your technical record' : 'Initialize technical data capture'}
+                  </p>
+                </div>
+                <Button type="button" size="icon" variant="ghost" className="h-10 w-10 rounded-full hover:bg-white/5" onClick={onClose}>
+                  <X className="w-5 h-5 text-gray-500" />
+                </Button>
               </div>
-              <Button type="button" size="icon" variant="ghost" className="h-10 w-10 rounded-full hover:bg-white/5" onClick={onClose}>
-                <X className="w-5 h-5 text-gray-500" />
-              </Button>
-            </div>
 
-            <div className="space-y-6">
-               <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2 md:col-span-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Session Title</label>
                   <Input
-                    placeholder="e.g. Refactoring Authentication Engine"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="h-14 bg-white/5 border-white/10 rounded-2xl text-lg font-bold text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
-                    autoFocus
+                    placeholder="e.g. Architecting Data Pipeline"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="h-12 bg-white/5 border-white/10 rounded-xl font-bold text-white"
                     required
                   />
-               </div>
+                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Time Invested</label>
-                    <div className="relative">
-                       <Input
-                         type="number" placeholder="Minutes" min={1}
-                         value={minutes}
-                         onChange={(e) => setMinutes(e.target.value)}
-                         className="h-14 bg-white/5 border-white/10 rounded-2xl text-lg font-bold text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
-                         required
-                       />
-                       <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-600 uppercase tracking-widest">Min</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Core Technology</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {LANGUAGES.map((l) => (
-                        <button
-                          key={l} type="button"
-                          onClick={() => setLanguage(language === l ? '' : l)}
-                          className={cn(
-                            'px-3 py-1.5 rounded-xl text-[10px] font-black transition-all border',
-                            language === l
-                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-lg shadow-emerald-500/10'
-                              : 'bg-white/5 text-gray-500 border-white/5 hover:bg-white/10'
-                          )}
-                        >{l}</button>
-                      ))}
-                    </div>
-                  </div>
-               </div>
-
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Technical Brief (Optional)</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Project Name</label>
                   <Input
-                    placeholder="Details about abstractions, bugs fixed, or features built..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="h-14 bg-white/5 border-white/10 rounded-2xl text-sm text-gray-400 focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                    placeholder="e.g. Impr0ve SaaS"
+                    value={formData.projectName}
+                    onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
+                    className="h-12 bg-white/5 border-white/10 rounded-xl text-white"
                   />
-               </div>
-            </div>
+                </div>
 
-            <div className="flex gap-3 justify-end pt-4 border-t border-white/5">
-              <Button type="button" variant="ghost" onClick={onClose} className="h-12 px-6 rounded-xl font-black text-gray-500 hover:text-white">Abort</Button>
-              <Button type="submit" className="h-12 px-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black shadow-xl shadow-emerald-500/20">
-                Log Entry
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </motion.div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Session Date</label>
+                  <Input
+                    type="date"
+                    value={formData.sessionDate}
+                    onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
+                    className="h-12 bg-white/5 border-white/10 rounded-xl text-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Duration (Minutes)</label>
+                  <Input
+                    type="number"
+                    value={formData.durationMinutes}
+                    onChange={(e) => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) || 0 })}
+                    className="h-12 bg-white/5 border-white/10 rounded-xl text-white font-mono"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Problems Solved</label>
+                  <Input
+                    type="number"
+                    value={formData.problemsSolved}
+                    onChange={(e) => setFormData({ ...formData, problemsSolved: parseInt(e.target.value) || 0 })}
+                    className="h-12 bg-white/5 border-white/10 rounded-xl text-white font-mono"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Technology</label>
+                  <select
+                    value={formData.language}
+                    onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                    className="w-full h-12 bg-white/5 border-white/10 rounded-xl text-white px-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 appearance-none"
+                  >
+                    {LANGUAGES.map(l => <option key={l} value={l} className="bg-gray-900">{l}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Difficulty</label>
+                  <div className="flex gap-1.5 p-1 bg-white/5 rounded-xl">
+                    {DIFFICULTIES.map(d => (
+                      <button
+                        key={d} type="button"
+                        onClick={() => setFormData({ ...formData, difficulty: d })}
+                        className={cn(
+                          "flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all",
+                          formData.difficulty === d ? "bg-emerald-500 text-black shadow-lg" : "text-gray-500 hover:text-white"
+                        )}
+                      >{d}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Internal Notes</label>
+                  <Textarea
+                    placeholder="Abstractions, challenges, or next steps..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="min-h-[100px] bg-white/5 border-white/10 rounded-xl text-sm text-gray-300 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4 border-t border-white/5">
+                <Button type="button" variant="ghost" onClick={onClose} className="h-12 px-6 rounded-xl font-black text-gray-500 hover:text-white">Cancel</Button>
+                <Button 
+                  type="submit" 
+                  disabled={mutation.isPending}
+                  className="h-12 px-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black font-black shadow-xl shadow-emerald-500/20"
+                >
+                  {mutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (session ? 'Save Changes' : 'Log Sprint')}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
   );
 }
 
 export default function CodingPage() {
   const queryClient = useQueryClient();
-  const [loggingActivity, setLoggingActivity] = useState(false);
-  const { user } = useAuth();
+  const [modalSession, setModalSession] = useState<any>(null);
+  const [showModal, setShowModal] = useState(false);
 
-  const { data: codingActivities = [], isLoading } = useQuery({
-    queryKey: ['coding'],
-    queryFn: () => CodingService.getActivities().then(res => res.data.data),
+  const { data: sessions = [], isLoading: isLoadingSessions } = useQuery({
+    queryKey: ['coding-sessions'],
+    queryFn: () => CodingService.getSessions().then(res => res.data.data),
+  });
+
+  const { data: stats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['coding-stats'],
+    queryFn: () => CodingService.getStats().then(res => res.data.data),
+  });
+
+  const { data: contributions = [], isLoading: isLoadingContributions } = useQuery({
+    queryKey: ['coding-contributions'],
+    queryFn: () => CodingService.getContributions().then(res => res.data.data),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => CodingService.deleteActivity(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['coding'] }),
+    mutationFn: (id: string) => CodingService.deleteSession(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coding-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['coding-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['coding-contributions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      toast.success('Session deleted');
+    },
   });
 
   const today = new Date().toISOString().split('T')[0];
-  const todayActivities = codingActivities.filter((a:any) => a.dateKey === today);
-  const todayMinutes = todayActivities.reduce((a:any, act:any) => a + act.minutesSpent, 0);
-  const totalMinutes = codingActivities.reduce((a:any, act:any) => a + act.minutesSpent, 0);
-  
+  const todayMinutes = sessions.filter((s:any) => s.sessionDate.split('T')[0] === today).reduce((a:any, s:any) => a + s.durationMinutes, 0);
+
   const langMap: Record<string, number> = {};
-  codingActivities.forEach((a:any) => {
-    if (a.language) langMap[a.language] = (langMap[a.language] || 0) + a.minutesSpent;
+  sessions.forEach((s:any) => {
+    if (s.language) langMap[s.language] = (langMap[s.language] || 0) + s.durationMinutes;
   });
+  const totalMinutes = Object.values(langMap).reduce((a, b) => a + b, 0);
   const topLangs = Object.entries(langMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
-  const recentActivities = [...codingActivities]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 10);
+  const handleEdit = (session: any) => {
+    setModalSession(session);
+    setShowModal(true);
+  };
+
+  const handleCreate = () => {
+    setModalSession(null);
+    setShowModal(true);
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-12 pb-24 lg:pb-12 px-2">
@@ -255,38 +332,28 @@ export default function CodingPage() {
             <p className="text-gray-400 mt-2 flex items-center gap-2">
               <span className="text-emerald-500/80 font-black uppercase tracking-[0.2em] text-[10px]">Technical Pulse</span>
               <span className="w-1 h-1 rounded-full bg-gray-800" />
-              <span className="text-sm font-medium">{codingActivities.length} Committed Sessions</span>
+              <span className="text-sm font-medium">{sessions.length} Committed Sessions</span>
             </p>
           </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          {!loggingActivity && (
-            <Button
-              onClick={() => setLoggingActivity(true)}
-              className="h-16 px-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-black font-black text-lg shadow-2xl shadow-emerald-500/20 group transition-all"
-            >
-              <Plus className="w-6 h-6 mr-3 group-hover:rotate-90 transition-transform duration-300" /> 
-              Log Session
-            </Button>
-          )}
-        </AnimatePresence>
+        <Button
+          onClick={handleCreate}
+          className="h-16 px-10 rounded-full bg-emerald-500 hover:bg-emerald-600 text-black font-black text-lg shadow-2xl shadow-emerald-500/20 group transition-all"
+        >
+          <Plus className="w-6 h-6 mr-3 group-hover:rotate-90 transition-transform duration-300" /> 
+          Log Session
+        </Button>
       </header>
 
-      <AnimatePresence>
-        {loggingActivity && (
-          <div className="mb-12">
-             <LogActivityForm onClose={() => setLoggingActivity(false)} />
-          </div>
-        )}
-      </AnimatePresence>
+      {showModal && <SessionModal session={modalSession} onClose={() => setShowModal(false)} />}
 
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Technical Streak', value: '4 days', icon: Flame, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-          { label: 'Longest Sprint', value: '12 days', icon: Zap, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+          { label: 'Technical Streak', value: stats?.currentStreak === 0 ? '0 Days' : `${stats?.currentStreak} Days`, icon: Flame, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+          { label: 'Longest Sprint', value: stats?.longestStreak === 0 ? '0 Days' : `${stats?.longestStreak} Days`, icon: Zap, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
           { label: 'Today Pulse', value: `${todayMinutes}m`, icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { label: 'Accumulated XP', value: totalMinutes >= 60 ? `${Math.floor(totalMinutes/60)}h` : `${totalMinutes}m`, icon: BarChart3, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+          { label: 'Total Invested', value: stats?.totalMinutes >= 60 ? `${Math.floor(stats?.totalMinutes/60)}h` : `${stats?.totalMinutes || 0}m`, icon: BarChart3, color: 'text-blue-400', bg: 'bg-blue-500/10' },
         ].map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
             <Card className="bg-white/[0.02] border-white/5 rounded-[2rem] p-6 hover:bg-white/[0.04] transition-all">
@@ -308,15 +375,15 @@ export default function CodingPage() {
                   <CardTitle className="text-2xl font-black text-white flex items-center gap-3">
                     <Github className="w-6 h-6 text-emerald-400" /> Activity Matrix
                   </CardTitle>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-1">One year technical heatmap</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-1">Real-time technical heatmap</p>
                </div>
              </div>
           </CardHeader>
           <CardContent className="p-10 pt-4">
-            {isLoading ? (
+            {isLoadingContributions ? (
                <div className="h-40 bg-white/5 animate-pulse rounded-2xl" />
             ) : (
-               <ContributionGraph activities={codingActivities} />
+               <ContributionGraph contributions={contributions} />
             )}
           </CardContent>
         </Card>
@@ -339,9 +406,9 @@ export default function CodingPage() {
                   <div key={lang} className="space-y-2">
                     <div className="flex justify-between text-xs font-black uppercase tracking-widest">
                       <span className="text-gray-300">{lang}</span>
-                      <span className="text-emerald-500">{Math.round((mins / totalMinutes) * 100)}%</span>
+                      <span className="text-emerald-500">{Math.round((mins / (totalMinutes || 1)) * 100)}%</span>
                     </div>
-                    <Progress value={(mins / totalMinutes) * 100} className="h-2 bg-white/5 [&>div]:bg-emerald-500" />
+                    <Progress value={(mins / (totalMinutes || 1)) * 100} className="h-2 bg-white/5 [&>div]:bg-emerald-500" />
                   </div>
                 ))}
               </div>
@@ -354,42 +421,82 @@ export default function CodingPage() {
          <h2 className="text-3xl font-black text-white tracking-tighter px-2 flex items-center gap-3">
             <Activity className="w-8 h-8 text-blue-500" /> Session History
          </h2>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {recentActivities.map((act: any) => (
-              <motion.div key={act.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <Card className="bg-white/[0.02] border-white/5 hover:bg-white/[0.04] rounded-3xl p-6 transition-all group">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-lg font-black text-white truncate">{act.title}</h4>
-                      <div className="flex items-center gap-4 mt-2">
-                         <div className="flex items-center gap-1.5">
-                            <Calendar className="w-3.5 h-3.5 text-gray-600" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{new Date(act.dateKey).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                         </div>
-                         {act.language && (
-                           <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-lg font-black uppercase border border-emerald-500/20">{act.language}</span>
-                         )}
-                         <div className="flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-gray-600" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{act.minutesSpent}min</span>
-                         </div>
+         {sessions.length === 0 ? (
+           <div className="py-20 text-center bg-white/[0.01] border border-dashed border-white/5 rounded-[3rem]">
+              <Layers className="w-16 h-16 text-gray-800 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-500">Zero Technical Records</h3>
+              <p className="text-sm text-gray-600 mt-1">Start a session to initialize history</p>
+              <Button onClick={handleCreate} variant="outline" className="mt-6 border-white/10 hover:bg-white/5">
+                 Initialize First Session
+              </Button>
+           </div>
+         ) : (
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {sessions.map((session: any) => (
+                <motion.div key={session.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <Card className="bg-white/[0.02] border-white/5 hover:bg-white/[0.04] rounded-3xl p-6 transition-all group">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-lg font-black text-white truncate">{session.title}</h4>
+                          <span className={cn(
+                            "text-[8px] px-2 py-0.5 rounded-full font-black uppercase",
+                            session.difficulty === 'Expert' ? "bg-red-500 text-black" :
+                            session.difficulty === 'Hard' ? "bg-orange-500 text-black" :
+                            session.difficulty === 'Medium' ? "bg-blue-500 text-black" :
+                            "bg-emerald-500 text-black"
+                          )}>
+                            {session.difficulty}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 mt-2">
+                           <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-gray-600" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{new Date(session.sessionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                           </div>
+                           {session.projectName && (
+                             <div className="flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5 text-gray-600" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{session.projectName}</span>
+                             </div>
+                           )}
+                           <div className="flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5 text-gray-600" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{session.durationMinutes}min</span>
+                           </div>
+                        </div>
+                        {session.notes && <p className="text-xs text-gray-600 mt-3 line-clamp-2 italic">{session.notes}</p>}
+                        
+                        {session.problemsSolved > 0 && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <Trophy className="w-3 h-3 text-yellow-500" />
+                            <span className="text-[10px] font-bold text-yellow-500/80 uppercase tracking-widest">{session.problemsSolved} Problems Solved</span>
+                          </div>
+                        )}
                       </div>
-                      {act.description && <p className="text-xs text-gray-600 mt-3 line-clamp-1 italic">{act.description}</p>}
+                      <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-9 w-9 rounded-full text-blue-400/50 hover:text-blue-400 hover:bg-blue-400/10"
+                          onClick={() => handleEdit(session)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-9 w-9 rounded-full text-red-500/50 hover:text-red-500 hover:bg-red-500/10"
+                          onClick={() => deleteMutation.mutate(session.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost" size="icon"
-                      className="h-10 w-10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-red-500/50 hover:text-red-500 hover:bg-red-500/10"
-                      onClick={() => deleteMutation.mutate(act.id)}
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-         </div>
+                  </Card>
+                </motion.div>
+              ))}
+           </div>
+         )}
       </div>
     </div>
   );
 }
-
