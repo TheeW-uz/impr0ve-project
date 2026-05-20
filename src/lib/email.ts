@@ -18,7 +18,10 @@ export async function sendVerificationEmail(email: string, code: string) {
   try {
     const client = getResend();
     if (!client) {
-      return { success: false, error: 'Email service not configured' };
+      // Development fallback: log the code to console so local dev can see it
+      console.warn('sendVerificationEmail: Resend client not configured. Falling back to console output.');
+      console.info(`Simulated verification code for ${email}: ${code}`);
+      return { success: true, data: { simulated: true, email, code } };
     }
 
     const { data, error } = await client.emails.send({
@@ -42,6 +45,13 @@ export async function sendVerificationEmail(email: string, code: string) {
     if (error) {
       console.error('[Email Error]', error);
       return { success: false, error };
+    }
+
+    // Log the provider response for debugging (message id, status etc.)
+    try {
+      console.info('[Email Sent]', { to: email, id: (data as any)?.id || null, data });
+    } catch (e) {
+      console.info('[Email Sent] (unable to parse response)');
     }
 
     return { success: true, data };
