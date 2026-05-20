@@ -330,7 +330,7 @@ function AddGoalShortcut({ dateKey }: { dateKey: string }) {
             name="title"
             autoFocus
             placeholder="What's the goal?"
-            className="w-full bg-transparent border-none text-white placeholder:text-gray-600 focus:ring-0 font-bold text-lg"
+            className="w-full bg-transparent border-none text-white placeholder:text-gray-600 focus:ring-0 font-bold text-lg outline-none"
           />
 
           <div className="flex flex-col gap-4 pt-1">
