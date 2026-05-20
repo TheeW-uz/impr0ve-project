@@ -364,7 +364,7 @@ function AddGoalShortcut({ dateKey }: { dateKey: string }) {
                 type="number"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="bg-transparent border-none text-white font-black text-sm focus:ring-0 w-16 text-right ml-auto"
+                className="bg-transparent border-none text-white font-black text-sm focus:ring-0 w-16 text-right ml-auto outline-none"
               />
               <span className="text-[11px] font-bold text-gray-600 uppercase">Min</span>
             </div>
