@@ -60,7 +60,11 @@ export async function POST(req: NextRequest) {
           data: { userId: user.id, codeHash, expiresAt },
         });
 
-        await sendVerificationEmail(user.email, code);
+        const emailResult = await sendVerificationEmail(user.email, code);
+        if (!emailResult || !emailResult.success) {
+          console.error('[login] Failed to send verification email', emailResult?.error);
+          return err('Failed to send verification email', 502);
+        }
 
         // Verification token is just a base64 encoded JSON to pass data to the verify endpoint
         const verificationToken = Buffer.from(JSON.stringify({ userId: user.id, deviceId, deviceName, rememberMe })).toString('base64');

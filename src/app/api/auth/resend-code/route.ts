@@ -50,7 +50,11 @@ export async function POST(req: NextRequest) {
       data: { userId: user.id, codeHash, expiresAt },
     });
 
-    await sendVerificationEmail(user.email, code);
+    const emailResult = await sendVerificationEmail(user.email, code);
+    if (!emailResult || !emailResult.success) {
+      console.error('[resend-code] Failed to send verification email', emailResult?.error);
+      return err('Failed to send verification email', 502);
+    }
 
     return ok({ message: 'A new verification code has been sent to your email.' });
   } catch (e: any) {
