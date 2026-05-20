@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { ok, err } from '@/lib/api-middleware';
@@ -38,7 +38,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (lastCode) {
-      return err('Please wait at least 60 seconds before requesting a new code', 429);
+      const windowMs = 60 * 1000;
+      const retryAt = lastCode.createdAt.getTime() + windowMs;
+      const secondsLeft = Math.max(0, Math.ceil((retryAt - Date.now()) / 1000));
+      const message = `Please wait ${secondsLeft} second(s) before requesting a new code`;
+      return NextResponse.json({ error: message }, { status: 429, headers: { 'Retry-After': String(secondsLeft) } });
     }
 
     // Generate secure 5-digit code
