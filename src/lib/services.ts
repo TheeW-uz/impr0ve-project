@@ -6,8 +6,6 @@ export const AuthService = {
   logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken }),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data: any) => api.patch('/auth/me', data),
-  verifyDevice: (data: { code: string; verificationToken: string }) => api.post('/auth/verify-device', data),
-  resendCode: (data: { verificationToken: string }) => api.post('/auth/resend-code', data),
 };
 
 export const GoalService = {

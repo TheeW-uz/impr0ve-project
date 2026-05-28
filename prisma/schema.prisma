@@ -32,8 +32,6 @@ model User {
   settings              Settings?
   sideQuests            SideQuest[]
   stuffToDoItems        StuffToDoItem[]
-  trustedDevices        TrustedDevice[]
-  verificationCodes     VerificationCode[]
   yearlyGoals           YearlyGoal[]
 
   @@map("users")
@@ -367,29 +365,6 @@ model StuffToDoItem {
   @@map("stuff_to_do_items")
 }
 
-model TrustedDevice {
-  id         String   @id @default(cuid())
-  userId     String
-  deviceId   String
-  deviceName String?
-  createdAt  DateTime @default(now())
-  lastUsedAt DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, deviceId])
-  @@map("trusted_devices")
-}
-
-model VerificationCode {
-  id        String   @id @default(cuid())
-  userId    String
-  codeHash  String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("verification_codes")
-}
 
 enum Priority {
   LOW
