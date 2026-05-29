@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/lib/language-context';
 
 export default function ForgotPasswordPage() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [isSent, setIsSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,13 +37,13 @@ export default function ForgotPasswordPage() {
               className="space-y-6"
             >
               <div>
-                <h2 className="text-xl font-bold text-white">Reset password</h2>
-                <p className="text-sm text-gray-500 mt-1">Enter your email and we'll send you a recovery link.</p>
+                <h2 className="text-xl font-bold text-white">{t('auth.forgot_password.title')}</h2>
+                <p className="text-sm text-gray-500 mt-1">{t('auth.forgot_password.subtitle')}</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 px-1">Email Address</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 px-1">{t('auth.forgot_password.email_label')}</label>
                   <div className="relative">
                     <Input
                       type="email"
@@ -58,9 +60,9 @@ export default function ForgotPasswordPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-11 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-xl transition-all"
+                  className="w-full h-11 bg-emerald-500 hover:bg-emerald-600 text-black font-bold rounded-xl transition-all"
                 >
-                  {isLoading ? 'Sending Link...' : 'Send Recovery Link'}
+                  {isLoading ? t('common.loading') : t('auth.forgot_password.send_link')}
                 </Button>
               </form>
             </motion.div>
@@ -75,14 +77,11 @@ export default function ForgotPasswordPage() {
                 <CheckCircle2 className="w-8 h-8 text-green-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Check your email</h2>
+                <h2 className="text-xl font-bold text-white">{t('common.synced')}</h2>
                 <p className="text-sm text-gray-500 mt-2">
-                  We've sent a recovery link to <span className="text-white font-medium">{email}</span>
+                  Recovery link has been sent to <span className="text-white font-medium">{email}</span>
                 </p>
               </div>
-              <p className="text-[10px] text-gray-600">
-                Didn't receive it? Check your spam folder or try again.
-              </p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -90,7 +89,7 @@ export default function ForgotPasswordPage() {
         <div className="text-center pt-2">
           <Link href="/login" className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-white transition-colors group">
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-            Back to login
+            {t('auth.forgot_password.back_to_login')}
           </Link>
         </div>
       </div>

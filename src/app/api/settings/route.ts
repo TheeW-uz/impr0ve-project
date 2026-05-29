@@ -11,7 +11,12 @@ const settingsSchema = z.object({
   goalDeadlines: z.boolean().optional(),
   marketingEmails: z.boolean().optional(),
   timezone: z.string().optional(),
-  weekStartsOn: z.number().min(0).max(6).optional()
+  weekStartsOn: z.number().min(0).max(6).optional(),
+  // User-level fields synced here for convenience
+  locale: z.enum(['en', 'uz', 'ru']).optional(),
+  profileVisible: z.boolean().optional(),
+  statusText: z.string().max(120).optional(),
+  statusEmoji: z.string().max(8).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -41,10 +46,25 @@ export async function PATCH(req: NextRequest) {
   const parsed = settingsSchema.safeParse(body);
   if (!parsed.success) return err(parsed.error.issues[0].message, 422);
 
-  const settings = await prisma.settings.update({
-    where: { userId: auth.sub },
-    data: parsed.data
-  });
+  const { locale, profileVisible, statusText, statusEmoji, ...settingsData } = parsed.data;
 
-  return ok(settings);
+  // Run both updates in parallel
+  const [settings] = await Promise.all([
+    Object.keys(settingsData).length > 0
+      ? prisma.settings.update({ where: { userId: auth.sub }, data: settingsData })
+      : prisma.settings.findUnique({ where: { userId: auth.sub } }),
+    (locale !== undefined || profileVisible !== undefined || statusText !== undefined || statusEmoji !== undefined)
+      ? prisma.user.update({
+          where: { id: auth.sub },
+          data: {
+            ...(locale !== undefined && { locale }),
+            ...(profileVisible !== undefined && { profileVisible }),
+            ...(statusText !== undefined && { statusText }),
+            ...(statusEmoji !== undefined && { statusEmoji }),
+          },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  return ok({ settings, locale, profileVisible, statusText, statusEmoji });
 }

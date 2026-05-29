@@ -16,6 +16,10 @@ model User {
   bio                   String?
   xp                    Int                     @default(0)
   level                 Int                     @default(1)
+  statusText            String                  @default("")
+  statusEmoji           String                  @default("")
+  profileVisible        Boolean                 @default(true)
+  locale                String                  @default("en")
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
   activityLogs          ActivityLog[]
@@ -33,6 +37,9 @@ model User {
   sideQuests            SideQuest[]
   stuffToDoItems        StuffToDoItem[]
   yearlyGoals           YearlyGoal[]
+  githubAccount         GithubAccount?
+  codingGoals           CodingGoal[]
+  achievements          UserAchievement[]
 
   @@map("users")
 }
@@ -389,4 +396,127 @@ enum AssignmentStatus {
   PENDING
   COMPLETED
   SKIPPED
+}
+
+model GithubAccount {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  githubId     String   @unique
+  username     String
+  avatarUrl    String?
+  profileUrl   String
+  accessToken  String
+  followers    Int      @default(0)
+  following    Int      @default(0)
+  publicRepos  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("github_accounts")
+}
+
+model CodingGoal {
+  id                  String             @id @default(cuid())
+  userId              String
+  technology          String
+  category            String             @default("Languages")
+  currentLevel        String             // e.g. "Beginner", "Junior", "Intermediate", "Advanced", "Professional", "Expert"
+  targetLevel         String             // e.g. "Intermediate", "Advanced", "Professional", "Expert"
+  estimatedStudyHours Int                @default(100)
+  dailyMinutes        Int                @default(60)
+  difficulty          String             @default("Medium") // "Easy", "Medium", "Hard", "Expert"
+  status              String             @default("active") // "active", "paused", "completed"
+  xpEarned            Int                @default(0)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roadmap             CodingRoadmap?
+  progressHistory     ProgressHistory[]
+
+  @@map("coding_goals")
+}
+
+model CodingRoadmap {
+  id                String             @id @default(cuid())
+  goalId            String             @unique
+  totalPhases       Int                @default(3)
+  completedPhases   Int                @default(0)
+  estimatedWeeks    Int                @default(12)
+  adaptationNote    String?            @default("Pace is normal.")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  goal              CodingGoal         @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  phases            RoadmapPhase[]
+  aiRecommendations AiRecommendation[]
+
+  @@map("coding_roadmaps")
+}
+
+model RoadmapPhase {
+  id          String        @id @default(cuid())
+  roadmapId   String
+  title       String        // e.g. "Phase 1: Foundations", "Phase 2: Core Concepts"
+  description String?
+  order       Int           @default(0)
+  completed   Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  roadmap     CodingRoadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  tasks       RoadmapTask[]
+
+  @@map("roadmap_phases")
+}
+
+model RoadmapTask {
+  id          String       @id @default(cuid())
+  phaseId     String
+  title       String
+  description String?
+  resource    String?      // Links or suggestions
+  isProject   Boolean      @default(false)
+  completed   Boolean      @default(false)
+  completedAt DateTime?
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  phase       RoadmapPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@map("roadmap_tasks")
+}
+
+model ProgressHistory {
+  id         String     @id @default(cuid())
+  goalId     String
+  minutes    Int        @default(0)
+  notes      String?
+  recordedAt DateTime   @default(now())
+  goal       CodingGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@map("progress_histories")
+}
+
+model AiRecommendation {
+  id           String        @id @default(cuid())
+  roadmapId    String
+  topic        String
+  reason       String
+  exercise     String
+  projectIdea  String?
+  detectedPace String        @default("Normal")
+  createdAt    DateTime      @default(now())
+  roadmap      CodingRoadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+
+  @@map("ai_recommendations")
+}
+
+model UserAchievement {
+  id          String   @id @default(cuid())
+  userId      String
+  badgeKey    String
+  unlockedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeKey])
+  @@map("user_achievements")
 }

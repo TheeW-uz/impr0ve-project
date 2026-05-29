@@ -8,6 +8,7 @@ import { AuthProvider } from '@/components/auth/AuthProvider';
 import { MobileNav } from '@/components/layout/MobileNav';
 
 import QueryProvider from '@/components/providers/query-provider';
+import { LanguageProvider } from '@/lib/language-context';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,12 +30,14 @@ export default function RootLayout({
         <QueryProvider>
           <StoreProvider>
             <AuthProvider>
-              <Sidebar />
-              <MobileNav />
-              <main className="flex-1 min-h-0 overflow-y-auto px-4 py-20 lg:p-8 transition-all duration-300">
-                {children}
-              </main>
-              <Toaster />
+              <LanguageProvider>
+                <Sidebar />
+                <MobileNav />
+                <main className="flex-1 min-h-0 overflow-y-auto px-4 py-20 lg:p-8 transition-all duration-300">
+                  {children}
+                </main>
+                <Toaster />
+              </LanguageProvider>
             </AuthProvider>
           </StoreProvider>
         </QueryProvider>

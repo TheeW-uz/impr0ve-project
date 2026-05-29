@@ -60,6 +60,22 @@ export const CodingService = {
   // Aliases for hooks
   getActivities: (params?: any) => api.get('/coding/sessions', { params }),
   logActivity: (data: any) => api.post('/coding/sessions', data),
+
+  // GitHub Integration
+  getGithubProfile: () => api.get('/coding/github/profile'),
+  connectGithub: (data: { username: string; accessToken?: string }) => api.post('/coding/github/connect', data),
+  syncGithub: () => api.post('/coding/github/sync'),
+  disconnectGithub: () => api.post('/coding/github/disconnect'),
+
+  // Coding Goals & AI Roadmaps
+  getGoals: () => api.get('/coding/goals'),
+  createGoal: (data: any) => api.post('/coding/goals', data),
+  getGoal: (id: string) => api.get(`/coding/goals/${id}`),
+  updateGoal: (id: string, data: any) => api.patch(`/coding/goals/${id}`, data),
+  deleteGoal: (id: string) => api.delete(`/coding/goals/${id}`),
+  toggleTask: (goalId: string, taskId: string, completed: boolean) => api.patch(`/coding/goals/${goalId}/tasks/${taskId}`, { completed }),
+  logGoalTime: (goalId: string, data: { minutes: number; notes?: string }) => api.post(`/coding/goals/${goalId}/history`, data),
+  adaptRoadmap: (goalId: string) => api.post(`/coding/goals/${goalId}/adapt`),
 };
 
 export const DashboardService = {
@@ -100,6 +116,11 @@ export const StuffToDoService = {
   create: (data: any) => api.post('/stuff-to-do', data),
   update: (id: string, data: any) => api.put(`/stuff-to-do/${id}`, data),
   delete: (id: string) => api.delete(`/stuff-to-do/${id}`),
+};
+
+export const SocialService = {
+  searchUsers: (q: string) => api.get(`/users/search?q=${encodeURIComponent(q)}`),
+  getPublicProfile: (username: string) => api.get(`/users/${username}`),
 };
 
 export const AnalyticsService = {

@@ -5,9 +5,8 @@ import { DashboardService } from '@/lib/services';
 import { useAuth } from '@/lib/auth-store';
 import { motion } from 'framer-motion';
 import {
-  Target, Flame, TrendingUp, CheckCircle, XCircle,
-  Zap, BarChart3, Calendar, Infinity, Code, Award,
-  Sun, CalendarDays, CalendarRange, Loader2, AlertCircle
+  Flame, TrendingUp, CheckCircle,
+  Sun, CalendarDays, CalendarRange, Loader2, AlertCircle, BarChart3, Infinity, Code, XCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProgressRing } from '@/components/dashboard/ProgressRing';
@@ -15,6 +14,7 @@ import { MotivationalWidget } from '@/components/dashboard/MotivationalWidget';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useLanguage } from '@/lib/language-context';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -23,6 +23,7 @@ const fadeUp = {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   
   const { data: summaryData, isLoading, isError } = useQuery({
     queryKey: ['dashboard-summary'],
@@ -37,8 +38,8 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
-        <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Initializing Dashboard...</p>
+        <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
+        <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">{t('common.loading')}</p>
       </div>
     );
   }
@@ -47,16 +48,16 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
         <AlertCircle className="w-12 h-12 text-red-500 opacity-50" />
-        <h2 className="text-xl font-black text-white">Critical System Failure</h2>
-        <p className="text-gray-500 max-w-md">We couldn't establish a connection to the neural interface. Please check your connection and try again.</p>
+        <h2 className="text-xl font-black text-white">{t('common.error')}</h2>
+        <p className="text-gray-500 max-w-md">{t('common.error_generic')}</p>
         <Button onClick={() => window.location.reload()} variant="outline" className="mt-4 border-white/10 hover:bg-white/5">
-          Reboot System
+          {t('common.retry')}
         </Button>
       </div>
     );
   }
 
-  const { todo, goals, quests, coding, banned, punishments, stuffToDo, productivityScore } = summaryData;
+  const { todo, goals, coding, banned, punishments, productivityScore } = summaryData;
 
   const totalGoalsEver = todo.total + goals.monthly.total + goals.yearly.total + goals.lifetime.total;
   const totalDoneEver = todo.completed + goals.monthly.completed + goals.yearly.completed + goals.lifetime.completed;
@@ -69,11 +70,11 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="px-1 md:px-0">
         <div className="flex items-center gap-3 md:gap-4 mb-1">
-          <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-400 font-bold uppercase text-xs md:text-sm">
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold uppercase text-xs md:text-sm">
             {user?.username?.substring(0, 2)}
           </div>
           <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight truncate">
-            Welcome back, {user?.username}
+            {t('auth.login.title')}, {user?.username}
           </h1>
         </div>
         <p className="text-gray-400 mt-1 text-[11px] md:text-sm md:pl-14">
@@ -86,8 +87,8 @@ export default function DashboardPage() {
           {' — '}
           <span className="text-gray-300">
             {totalGoalsEver === 0
-              ? 'Your journey starts now. Everything begins at zero.'
-              : `${totalDoneEver} goals completed · ${totalFailedEver} failed`}
+              ? t('dashboard.start_logging')
+              : `${totalDoneEver} completed · ${totalFailedEver} failed`}
           </span>
         </p>
       </header>
@@ -96,30 +97,30 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
-            label: "Today's Goals",
+            label: t('nav.todo'),
             value: todo.today.total === 0 ? '—' : `${todo.today.completed}/${todo.today.total}`,
-            sub: todo.today.total > 0 ? `${Math.round((todo.today.completed / todo.today.total) * 100)}% done` : 'No goals yet',
+            sub: todo.today.total > 0 ? `${Math.round((todo.today.completed / todo.today.total) * 100)}% done` : t('dashboard.no_data'),
             icon: Sun, color: 'text-amber-400', bg: 'bg-amber-500/10',
             href: '/todo',
           },
           {
-            label: 'Coding Streak',
-            value: coding.currentStreak === 0 ? '0 days' : `${coding.currentStreak} days`,
-            sub: coding.longestStreak > 0 ? `Best: ${coding.longestStreak} days` : 'Log sessions',
+            label: t('profile.coding_streak'),
+            value: coding.currentStreak === 0 ? `0 ${t('common.days')}` : `${coding.currentStreak} ${t('common.days')}`,
+            sub: coding.longestStreak > 0 ? `${t('profile.longest_streak')}: ${coding.longestStreak} ${t('common.days')}` : t('profile.no_progression'),
             icon: Flame, color: coding.currentStreak > 0 ? 'text-orange-400' : 'text-gray-500', bg: 'bg-orange-500/10',
             href: '/coding',
           },
           {
-            label: 'Productivity',
+            label: t('profile.recovery_index'),
             value: `${productivityScore}%`,
-            sub: 'Based on real activity',
+            sub: t('profile.identity'),
             icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10',
             href: '/todo',
           },
           {
-            label: 'Total Completed',
+            label: t('profile.relapses'),
             value: totalDoneEver,
-            sub: `${totalGoalsEver} items tracked`,
+            sub: `${totalGoalsEver} tracked`,
             icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10',
             href: '/goals/monthly',
           },
@@ -151,15 +152,15 @@ export default function DashboardPage() {
           <Card className="bg-white/5 border-white/5 h-full overflow-hidden">
             <CardHeader className="p-5 md:p-6 pb-2">
               <CardTitle className="text-sm md:text-base font-bold flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary-400" />
-                Completion Trend (Last 7 Days)
+                <BarChart3 className="w-4 h-4 text-emerald-400" />
+                {t('profile.analytics')}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 md:p-6 pt-2">
               {weeklyBars.length === 0 || weeklyBars.every((b: any) => !b.hasGoals) ? (
                 <div className="h-32 md:h-40 flex flex-col items-center justify-center text-gray-600">
                   <BarChart3 className="w-8 h-8 mb-2 opacity-20" />
-                  <p className="text-xs md:text-sm">Add daily goals to see trends</p>
+                  <p className="text-xs md:text-sm">{t('profile.analytics_empty')}</p>
                 </div>
               ) : (
                 <div className="flex items-end gap-1 md:gap-2 h-32 md:h-40">
@@ -196,7 +197,7 @@ export default function DashboardPage() {
         {/* Today's progress ring */}
         <motion.div custom={5} variants={fadeUp} initial="hidden" animate="show">
           <Card className="bg-white/5 border-white/5 flex flex-col items-center justify-center p-6 h-full">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4 text-center">Today's Progress</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-4 text-center">{t('dashboard.today')}</p>
             <div className="scale-75 md:scale-100 origin-center">
               <ProgressRing percent={todo.today.total > 0 ? Math.round((todo.today.completed / todo.today.total) * 100) : 0} size={140} label="" />
             </div>
@@ -204,7 +205,7 @@ export default function DashboardPage() {
               {todo.today.total > 0 ? Math.round((todo.today.completed / todo.today.total) * 100) : 0}%
             </p>
             <p className="text-xs text-gray-500 mt-1 text-center">
-              {todo.today.total === 0 ? 'No goals today' : `${todo.today.completed}/${todo.today.total} completed`}
+              {todo.today.total === 0 ? t('profile.no_progression') : `${todo.today.completed}/${todo.today.total} completed`}
             </p>
           </Card>
         </motion.div>
@@ -215,14 +216,14 @@ export default function DashboardPage() {
         <motion.div custom={6} variants={fadeUp} initial="hidden" animate="show">
           <Card className="bg-white/5 border-white/5">
             <CardHeader className="p-5 pb-2">
-              <CardTitle className="text-base font-bold">Scope Analysis</CardTitle>
+              <CardTitle className="text-base font-bold">{t('profile.tab_analytics')}</CardTitle>
             </CardHeader>
             <CardContent className="p-5 pt-3 space-y-4">
               {[
-                { label: 'Daily Goals', done: todo.completed, total: todo.total, rate: todo.total > 0 ? Math.round((todo.completed/todo.total)*100) : 0, color: 'bg-amber-500', icon: Sun, href: '/todo' },
-                { label: 'Monthly Goals', done: goals.monthly.completed, total: goals.monthly.total, rate: goals.monthly.progress, color: 'bg-blue-500', icon: CalendarDays, href: '/goals/monthly' },
-                { label: 'Yearly Goals', done: goals.yearly.completed, total: goals.yearly.total, rate: goals.yearly.progress, color: 'bg-purple-500', icon: CalendarRange, href: '/goals/yearly' },
-                { label: 'Lifetime Goals', done: goals.lifetime.completed, total: goals.lifetime.total, rate: goals.lifetime.avgProgress, color: 'bg-emerald-500', icon: Infinity, href: '/goals/lifetime' },
+                { label: t('nav.todo'), done: todo.completed, total: todo.total, rate: todo.total > 0 ? Math.round((todo.completed/todo.total)*100) : 0, color: 'bg-amber-500', icon: Sun, href: '/todo' },
+                { label: t('nav.monthly_goals'), done: goals.monthly.completed, total: goals.monthly.total, rate: goals.monthly.progress, color: 'bg-blue-500', icon: CalendarDays, href: '/goals/monthly' },
+                { label: t('nav.yearly_goals'), done: goals.yearly.completed, total: goals.yearly.total, rate: goals.yearly.progress, color: 'bg-purple-500', icon: CalendarRange, href: '/goals/yearly' },
+                { label: t('nav.lifetime_goals'), done: goals.lifetime.completed, total: goals.lifetime.total, rate: goals.lifetime.avgProgress, color: 'bg-emerald-500', icon: Infinity, href: '/goals/lifetime' },
               ].map(({ label, done, total, rate, color, icon: Icon, href }) => (
                 <Link key={label} href={href} className="block group/item">
                   <div className="space-y-1.5">
@@ -238,7 +239,7 @@ export default function DashboardPage() {
                             <span className="text-gray-500">{total} total</span>
                           </>
                         ) : (
-                          <span className="text-gray-600">Zero state</span>
+                          <span className="text-gray-600">—</span>
                         )}
                       </div>
                     </div>
@@ -269,10 +270,10 @@ export default function DashboardPage() {
                    <div className="p-2 rounded-lg bg-emerald-500/10">
                      <Code className="w-4 h-4 text-emerald-400" />
                    </div>
-                   <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Coding</span>
+                   <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{t('nav.coding')}</span>
                  </div>
                  <p className="text-xl font-black text-white">{coding.totalHours}h</p>
-                 <p className="text-[10px] text-gray-500 mt-1">Total invested</p>
+                 <p className="text-[10px] text-gray-500 mt-1">{t('profile.xp_total')}</p>
               </CardContent>
             </Card>
 
@@ -282,31 +283,13 @@ export default function DashboardPage() {
                    <div className="p-2 rounded-lg bg-red-500/10">
                      <XCircle className="w-4 h-4 text-red-400" />
                    </div>
-                   <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Banned</span>
+                   <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{t('nav.banned_activities')}</span>
                  </div>
                  <p className="text-xl font-black text-white">{banned.brokenCount}</p>
-                 <p className="text-[10px] text-gray-500 mt-1">Times broken</p>
+                 <p className="text-[10px] text-gray-500 mt-1">{t('banned.times_broken')}</p>
               </CardContent>
             </Card>
           </div>
-
-          {/* Pending punishments */}
-          {punishments.pending > 0 && (
-            <Link href="/punishments">
-              <Card className="bg-red-500/10 border-red-500/20 hover:bg-red-500/20 transition-colors">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Zap className="w-5 h-5 text-red-500" />
-                    <div>
-                      <p className="text-sm font-bold text-white">{punishments.pending} Pending Punishments</p>
-                      <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest">Action required immediately</p>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300">Resolve →</Button>
-                </CardContent>
-              </Card>
-            </Link>
-          )}
         </motion.div>
       </div>
     </div>

@@ -6,8 +6,10 @@ import { ShieldBan, Scale, Info, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BannedActivitiesTab } from '@/components/banned-activities/BannedActivitiesTab';
 import { PunishmentRulesTab } from '@/components/banned-activities/PunishmentRulesTab';
+import { useLanguage } from '@/lib/language-context';
 
 export default function BannedActivitiesPage() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'activities' | 'punishments'>('activities');
 
   return (
@@ -24,8 +26,8 @@ export default function BannedActivitiesPage() {
               <ShieldBan className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight">Banned Activities</h1>
-              <p className="text-gray-500 text-sm font-medium">Break bad habits and enforce personal discipline.</p>
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{t('banned.title')}</h1>
+              <p className="text-gray-500 text-sm font-medium">{t('banned.subtitle')}</p>
             </div>
           </motion.div>
 
@@ -40,8 +42,8 @@ export default function BannedActivitiesPage() {
                 <ShieldAlert className="w-5 h-5 text-red-400" />
               </div>
               <p className="text-xs text-gray-400 leading-relaxed">
-                <span className="text-white font-bold block mb-0.5">Strict Discipline</span>
-                Track activities you want to avoid. Mark when you fail to keep yourself accountable.
+                <span className="text-white font-bold block mb-0.5">{t('banned.info_1_title')}</span>
+                {t('banned.info_1_desc')}
               </p>
             </div>
             <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 flex gap-4">
@@ -49,8 +51,8 @@ export default function BannedActivitiesPage() {
                 <Scale className="w-5 h-5 text-purple-400" />
               </div>
               <p className="text-xs text-gray-400 leading-relaxed">
-                <span className="text-white font-bold block mb-0.5">Automated Consequences</span>
-                Setup rules that trigger punishments when you fail your To-Do's or Goals.
+                <span className="text-white font-bold block mb-0.5">{t('banned.info_2_title')}</span>
+                {t('banned.info_2_desc')}
               </p>
             </div>
             <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 flex gap-4">
@@ -58,8 +60,8 @@ export default function BannedActivitiesPage() {
                 <Info className="w-5 h-5 text-blue-400" />
               </div>
               <p className="text-xs text-gray-400 leading-relaxed">
-                <span className="text-white font-bold block mb-0.5">How it works</span>
-                The system checks failed items. If thresholds are met, a punishment is assigned.
+                <span className="text-white font-bold block mb-0.5">{t('banned.info_3_title')}</span>
+                {t('banned.info_3_desc')}
               </p>
             </div>
           </motion.div>
@@ -69,8 +71,8 @@ export default function BannedActivitiesPage() {
         <div className="mb-8">
           <div className="flex border-b border-white/5">
             {[
-              { id: 'activities', label: 'Banned Activities', icon: ShieldBan },
-              { id: 'punishments', label: 'Punishment & Rules', icon: Scale },
+              { id: 'activities', label: t('banned.tab_activities'), icon: ShieldBan },
+              { id: 'punishments', label: t('banned.tab_punishments'), icon: Scale },
             ].map(tab => (
               <button
                 key={tab.id}

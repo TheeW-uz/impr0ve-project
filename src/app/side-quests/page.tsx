@@ -5,8 +5,10 @@ import { QuestForm } from '@/components/side-quests/QuestForm';
 import { QuestCard } from '@/components/side-quests/QuestCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swords, Zap, Trophy, Shield } from 'lucide-react';
+import { useLanguage } from '@/lib/language-context';
 
 export default function SideQuestsPage() {
+  const { t } = useLanguage();
   const { data: quests = [], isLoading } = useQuery({
     queryKey: ['side-quests'],
     queryFn: () => QuestService.getAll().then(res => res.data.data),
@@ -20,11 +22,11 @@ export default function SideQuestsPage() {
             <Swords className="w-10 h-10 text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter">Side Quests</h1>
+            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter">{t('sideQuests.title')}</h1>
             <p className="text-gray-400 mt-2 flex items-center gap-2">
-              <span className="text-indigo-500/80 font-black uppercase tracking-[0.2em] text-[10px]">Epic Challenges</span>
+              <span className="text-indigo-500/80 font-black uppercase tracking-[0.2em] text-[10px]">{t('sideQuests.subtitle')}</span>
               <span className="w-1 h-1 rounded-full bg-gray-800" />
-              <span className="text-sm font-medium">{quests.length} Active Missions</span>
+              <span className="text-sm font-medium">{quests.length} {t('sideQuests.active_missions')}</span>
             </p>
           </div>
         </div>
@@ -38,7 +40,7 @@ export default function SideQuestsPage() {
            </div>
            <div>
              <p className="text-2xl font-black text-white">{quests.filter((q:any)=>q.completed).length}</p>
-             <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Quests Won</p>
+             <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('sideQuests.quests_won')}</p>
            </div>
         </Card>
         <Card className="bg-white/[0.02] border-white/5 rounded-[2.5rem] p-8 flex items-center gap-6">
@@ -47,7 +49,7 @@ export default function SideQuestsPage() {
            </div>
            <div>
              <p className="text-2xl font-black text-white">{quests.length}</p>
-             <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Current Rank</p>
+             <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t('sideQuests.current_rank')}</p>
            </div>
         </Card>
       </div>
@@ -73,8 +75,8 @@ export default function SideQuestsPage() {
               <div className="w-20 h-20 rounded-full bg-white/[0.02] flex items-center justify-center mb-8">
                 <Zap className="w-10 h-10 text-gray-800" />
               </div>
-              <h3 className="text-3xl font-black text-white mb-2">The Hero Rests</h3>
-              <p className="text-gray-500 max-w-sm mx-auto font-medium text-center">No challenges are currently active. Forge a new quest to begin your next level-up journey.</p>
+              <h3 className="text-3xl font-black text-white mb-2">{t('sideQuests.empty_title')}</h3>
+              <p className="text-gray-500 max-w-sm mx-auto font-medium text-center">{t('sideQuests.empty_desc')}</p>
             </motion.div>
           )}
         </AnimatePresence>

@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronLeft, ChevronRight, Calendar, Plus, 
+import {
+  ChevronLeft, ChevronRight, Calendar, Plus,
   CheckCircle2, Circle, XCircle, ArrowRight,
   TrendingUp, Clock, AlertCircle, CalendarRange, Target, Flame
 } from 'lucide-react';
@@ -16,8 +16,10 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterv
 import { DailyGoalCard } from '@/components/goals/DailyGoalCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useLanguage } from '@/lib/language-context';
 
 export default function ToDoPage() {
+  const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(format(new Date(), 'yyyy-MM-dd'));
 
@@ -66,9 +68,9 @@ export default function ToDoPage() {
             <Target className="w-7 h-7 text-primary-400" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">To-Do List</h1>
+            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">{t('todoList.title')}</h1>
             <p className="text-gray-400 mt-1 flex items-center gap-2">
-              <span className="text-primary-500/80 font-bold uppercase tracking-widest text-[10px]">Daily Execution</span>
+              <span className="text-primary-500/80 font-bold uppercase tracking-widest text-[10px]">{t('todoList.subtitle')}</span>
               <span className="w-1 h-1 rounded-full bg-gray-700" />
               <span className="text-sm font-medium">{format(currentDate, 'MMMM yyyy')}</span>
             </p>
@@ -80,25 +82,25 @@ export default function ToDoPage() {
           <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-10 w-10 rounded-xl hover:bg-white/10">
             <ChevronLeft className="w-5 h-5" />
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={handleCurrentMonth}
             className="px-4 h-10 rounded-xl text-sm font-bold uppercase tracking-wider hover:bg-white/10"
           >
-            Today
+            {t('todoList.today')}
           </Button>
           <div className="h-6 w-px bg-white/10 mx-1" />
-          
+
           <div className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all",
-            (summary?.todo?.streak || 0) > 0 
-              ? "bg-orange-500/10 border-orange-500/20 text-orange-400 shadow-lg shadow-orange-500/5" 
+            (summary?.todo?.streak || 0) > 0
+              ? "bg-orange-500/10 border-orange-500/20 text-orange-400 shadow-lg shadow-orange-500/5"
               : "bg-white/5 border-white/5 text-gray-600"
           )}>
-             <Flame className={cn("w-4 h-4", (summary?.todo?.streak || 0) > 0 && "fill-orange-400/20")} />
-             <span className="text-xs font-black uppercase tracking-widest">
-               {summaryLoading ? '...' : `${summary?.todo?.streak || 0} DAY STREAK`}
-             </span>
+            <Flame className={cn("w-4 h-4", (summary?.todo?.streak || 0) > 0 && "fill-orange-400/20")} />
+            <span className="text-xs font-black uppercase tracking-widest">
+              {summaryLoading ? '...' : `${summary?.todo?.streak || 0} ${t('todoList.day_streak')}`}
+            </span>
           </div>
 
           <div className="h-6 w-px bg-white/10 mx-1" />
@@ -117,7 +119,7 @@ export default function ToDoPage() {
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Monthly Completion</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{t('todoList.monthly_completion')}</p>
               <p className="text-xl font-black text-white">
                 {goals.length > 0 ? Math.round((goals.filter((g:any) => g.completed).length / goals.length) * 100) : 0}%
               </p>
@@ -130,7 +132,7 @@ export default function ToDoPage() {
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Total Goals</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{t('todoList.total_goals')}</p>
               <p className="text-xl font-black text-white">{goals.length}</p>
             </div>
           </CardContent>
@@ -141,7 +143,7 @@ export default function ToDoPage() {
               <Clock className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Pending</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">{t('todoList.pending')}</p>
               <p className="text-xl font-black text-white">{goals.filter((g:any) => !g.completed && !g.failed).length}</p>
             </div>
           </CardContent>
@@ -152,7 +154,7 @@ export default function ToDoPage() {
         {/* Calendar Grid */}
         <div className="flex-1 space-y-4">
           <div className="grid grid-cols-7 gap-1 md:gap-3">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+            {[t('todoList.sun'), t('todoList.mon'), t('todoList.tue'), t('todoList.wed'), t('todoList.thu'), t('todoList.fri'), t('todoList.sat')].map(d => (
               <div key={d} className="text-center py-2 text-[10px] font-black uppercase tracking-widest text-gray-600">
                 {d}
               </div>
@@ -245,15 +247,15 @@ export default function ToDoPage() {
                   <div className="flex items-center justify-between px-1">
                     <div>
                       <h2 className="text-xl font-black text-white">
-                        {isToday(new Date(selectedDateKey)) ? "Today's Goals" : format(new Date(selectedDateKey), 'EEEE, MMM do')}
+                        {isToday(new Date(selectedDateKey)) ? t('todoList.todays_goals') : format(new Date(selectedDateKey), 'EEEE, MMM do')}
                       </h2>
                       <p className="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold">
-                        {activeDateGoals.length} {activeDateGoals.length === 1 ? 'Goal' : 'Goals'} scheduled
+                        {activeDateGoals.length} {activeDateGoals.length === 1 ? t('todoList.goal') : t('todoList.goals')} {t('todoList.scheduled')}
                       </p>
                     </div>
                     {isFuture(new Date(selectedDateKey)) && (
                       <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                        Upcoming
+                        {t('todoList.upcoming')}
                       </span>
                     )}
                   </div>
@@ -264,8 +266,8 @@ export default function ToDoPage() {
                         <div className="w-16 h-16 rounded-full bg-white/[0.02] flex items-center justify-center mb-4">
                           <Plus className="w-6 h-6 text-gray-700" />
                         </div>
-                        <p className="text-gray-500 font-medium">No goals for this day</p>
-                        <p className="text-[10px] text-gray-600 uppercase tracking-widest font-bold mt-1">Ready to plan?</p>
+                        <p className="text-gray-500 font-medium">{t('todoList.no_goals')}</p>
+                        <p className="text-[10px] text-gray-600 uppercase tracking-widest font-bold mt-1">{t('todoList.ready_to_plan')}</p>
                       </div>
                     ) : (
                       activeDateGoals.map(goal => (
@@ -279,7 +281,7 @@ export default function ToDoPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center text-gray-500">
                   <CalendarRange className="w-12 h-12 mb-4 opacity-10" />
-                  <p className="font-medium">Select a date to view goals</p>
+                  <p className="font-medium">{t('todoList.select_date')}</p>
                 </div>
               )}
             </motion.div>
@@ -291,6 +293,7 @@ export default function ToDoPage() {
 }
 
 function AddGoalShortcut({ dateKey }: { dateKey: string }) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [priority, setPriority] = useState('MEDIUM');
   const [time, setTime] = useState('30');
@@ -298,13 +301,13 @@ function AddGoalShortcut({ dateKey }: { dateKey: string }) {
 
   if (!isOpen) {
     return (
-      <Button 
-        variant="ghost" 
+      <Button
+        variant="ghost"
         onClick={() => setIsOpen(true)}
         className="w-full h-14 rounded-2xl border border-dashed border-white/10 hover:border-amber-500/30 hover:bg-amber-500/5 hover:text-amber-400 group transition-all"
       >
         <Plus className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-        Add Goal
+        {t('todoList.add_goal')}
       </Button>
     );
   }
@@ -326,30 +329,30 @@ function AddGoalShortcut({ dateKey }: { dateKey: string }) {
           });
           setIsOpen(false);
         }} className="space-y-5">
-          <input 
+          <input
             name="title"
             autoFocus
-            placeholder="What's the goal?"
+            placeholder={t('todoList.whats_goal')}
             className="w-full bg-transparent border-none text-white placeholder:text-gray-600 focus:ring-0 font-bold text-lg outline-none"
           />
 
           <div className="flex flex-col gap-4 pt-1">
             <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">Priority / Difficulty</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">{t('todoList.priority')}</span>
               <div className="grid grid-cols-4 gap-2">
-                {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map((p) => (
+                {[{val: 'LOW', label: t('todoList.low')}, {val: 'MEDIUM', label: t('todoList.medium')}, {val: 'HIGH', label: t('todoList.high')}, {val: 'CRITICAL', label: t('todoList.critical')}].map((p) => (
                   <button
-                    key={p}
+                    key={p.val}
                     type="button"
-                    onClick={() => setPriority(p)}
+                    onClick={() => setPriority(p.val)}
                     className={cn(
                       "py-2 rounded-xl text-[10px] font-black transition-all border",
-                      priority === p 
-                        ? "bg-amber-500 border-amber-500 text-black shadow-lg shadow-amber-500/20" 
+                      priority === p.val
+                        ? "bg-amber-500 border-amber-500 text-black shadow-lg shadow-amber-500/20"
                         : "bg-white/5 border-white/5 text-gray-500 hover:bg-white/10"
                     )}
                   >
-                    {p}
+                    {p.label}
                   </button>
                 ))}
               </div>
@@ -358,22 +361,22 @@ function AddGoalShortcut({ dateKey }: { dateKey: string }) {
             <div className="flex items-center gap-4 bg-white/5 p-3 rounded-2xl border border-white/5">
               <div className="flex items-center gap-2 text-gray-400">
                 <Clock className="w-4 h-4" />
-                <span className="text-[11px] font-bold uppercase tracking-wider">Est. Time</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider">{t('todoList.est_time')}</span>
               </div>
-              <input 
+              <input
                 type="number"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 className="bg-transparent border-none text-white font-black text-sm focus:ring-0 w-16 text-right ml-auto outline-none"
               />
-              <span className="text-[11px] font-bold text-gray-600 uppercase">Min</span>
+              <span className="text-[11px] font-bold text-gray-600 uppercase">{t('todoList.minutes')}</span>
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
-            <Button size="sm" variant="ghost" type="button" onClick={() => setIsOpen(false)} className="rounded-xl h-10 px-4 text-xs font-bold uppercase tracking-wider">Cancel</Button>
+            <Button size="sm" variant="ghost" type="button" onClick={() => setIsOpen(false)} className="rounded-xl h-10 px-4 text-xs font-bold uppercase tracking-wider">{t('todoList.cancel')}</Button>
             <Button size="sm" type="submit" className="bg-amber-500 hover:bg-amber-600 text-black font-black rounded-xl h-10 px-6 text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20">
-              Save Goal
+              {t('todoList.save_goal')}
             </Button>
           </div>
         </form>

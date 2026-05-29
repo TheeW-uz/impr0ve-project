@@ -4,9 +4,9 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StuffToDoService } from '@/lib/services';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, Search, Filter, MoreHorizontal, Heart, 
-  Trash2, Edit2, Calendar, Clock, Tag, ChevronRight, 
+import {
+  Plus, Search, Filter, MoreHorizontal, Heart,
+  Trash2, Edit2, Calendar, Clock, Tag, ChevronRight,
   LayoutGrid, List, BarChart3, Star, CheckCircle2,
   Film, Users, Dumbbell, Zap, BookOpen, Ghost, Plane,
   Settings, ArrowLeft, Image as ImageIcon, MessageSquare,
@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/toaster';
+import { useLanguage } from '@/lib/language-context';
 
 const CATEGORIES = [
   'All', 'Movies', 'Social', 'Physical', 'Productivity', 'Learning', 'Fun', 'Travel', 'Other'
@@ -35,6 +36,7 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 export default function StuffToDoPage() {
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,29 +136,29 @@ export default function StuffToDoPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight flex items-center gap-3">
-            Stuff To Do <Sparkles className="w-8 h-8 text-amber-400" />
+            {t('stuffToDo.title')} <Sparkles className="w-8 h-8 text-amber-400" />
           </h1>
           <p className="text-gray-500 font-medium max-w-lg">
-            Quickly capture and organize things you want to experience, watch, or achieve.
+            {t('stuffToDo.subtitle')}
           </p>
         </div>
 
-        <Button 
+        <Button
           onClick={() => { setEditingItem(null); setIsModalOpen(true); }}
           className="h-14 px-8 rounded-2xl bg-primary-500 hover:bg-primary-600 text-white font-black shadow-xl shadow-primary-500/20 transition-all active:scale-95 flex items-center gap-2 group"
         >
-          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" /> 
-          Add New Stuff
+          <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+          {t('stuffToDo.add_new')}
         </Button>
       </header>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {[
-          { label: 'Total Items', value: stats.total, icon: List, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-          { label: 'Completed', value: stats.done, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { label: 'Upcoming', value: stats.notDone, icon: Clock3, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-          { label: 'Top Vibe', value: stats.favorite, icon: Star, color: 'text-rose-400', bg: 'bg-rose-500/10' },
+          { label: t('stuffToDo.total_items'), value: stats.total, icon: List, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+          { label: t('stuffToDo.completed'), value: stats.done, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+          { label: t('stuffToDo.upcoming'), value: stats.notDone, icon: Clock3, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+          { label: t('stuffToDo.top_vibe'), value: stats.favorite, icon: Star, color: 'text-rose-400', bg: 'bg-rose-500/10' },
         ].map((stat) => (
           <div key={stat.label} className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 flex flex-col items-center text-center">
             <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-4", stat.bg)}>
@@ -175,8 +177,8 @@ export default function StuffToDoPage() {
           {/* Search */}
           <div className="relative w-full lg:max-w-md">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-            <Input 
-              placeholder="Search your list..." 
+            <Input
+              placeholder={t('stuffToDo.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-12 pl-12 bg-white/[0.03] border-white/5 rounded-xl text-white font-medium placeholder:text-gray-600 focus:ring-primary-500 transition-all"
@@ -184,33 +186,33 @@ export default function StuffToDoPage() {
           </div>
 
           <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-            <select 
+            <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="h-12 bg-white/[0.03] border border-white/5 rounded-xl px-4 text-xs font-bold text-gray-400 outline-none focus:ring-2 focus:ring-primary-500 transition-all min-w-[140px]"
             >
-              <option value="newest">Latest Added</option>
-              <option value="oldest">Oldest First</option>
-              <option value="done">Show Done</option>
-              <option value="not-done">Show Pending</option>
+              <option value="newest">{t('stuffToDo.sort_latest')}</option>
+              <option value="oldest">{t('stuffToDo.sort_oldest')}</option>
+              <option value="done">{t('stuffToDo.sort_done')}</option>
+              <option value="not-done">{t('stuffToDo.sort_pending')}</option>
             </select>
           </div>
         </div>
 
         {/* Category Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide">
-          {CATEGORIES.map(cat => (
+          {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={cn(
                 "px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                selectedCategory === cat 
-                  ? "bg-primary-500 text-white shadow-lg shadow-primary-500/20" 
+                selectedCategory === cat
+                  ? "bg-primary-500 text-white shadow-lg shadow-primary-500/20"
                   : "bg-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.05] border border-white/5"
               )}
             >
-              {cat}
+              {cat === 'All' ? t('stuffToDo.all') : cat === 'Movies' ? t('stuffToDo.movies') : cat === 'Social' ? t('stuffToDo.social') : cat === 'Physical' ? t('stuffToDo.physical') : cat === 'Productivity' ? t('stuffToDo.productivity') : cat === 'Learning' ? t('stuffToDo.learning') : cat === 'Fun' ? t('stuffToDo.fun') : cat === 'Travel' ? t('stuffToDo.travel') : t('stuffToDo.other')}
             </button>
           ))}
         </div>
@@ -228,18 +230,18 @@ export default function StuffToDoPage() {
                 <LayoutGrid className="w-10 h-10 text-gray-700" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-white">List is empty</h3>
+                <h3 className="text-2xl font-black text-white">{t('stuffToDo.empty_title')}</h3>
                 <p className="text-gray-500 max-w-sm mx-auto font-medium">
-                  {searchQuery ? "No results found for your search." : "Start adding movies, places, or activities you want to do."}
+                  {searchQuery ? t('stuffToDo.empty_search') : t('stuffToDo.empty_start')}
                 </p>
               </div>
               {!searchQuery && (
-                <Button 
+                <Button
                   onClick={() => setIsModalOpen(true)}
                   variant="outline"
                   className="h-12 px-8 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 font-bold text-xs uppercase tracking-widest"
                 >
-                  Create First Item
+                  {t('stuffToDo.create_first')}
                 </Button>
               )}
             </motion.div>
@@ -359,6 +361,7 @@ function StuffCard({ item, onToggle, onEdit, onDelete }: any) {
 }
 
 function StuffFormModal({ item, onClose }: any) {
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [title, setTitle] = useState(item?.title || '');
@@ -367,11 +370,11 @@ function StuffFormModal({ item, onClose }: any) {
   const [plannedDate, setPlannedDate] = useState(item?.plannedDate ? new Date(item.plannedDate).toISOString().split('T')[0] : '');
 
   const mutation = useMutation({
-    mutationFn: (data: any) => 
+    mutationFn: (data: any) =>
       item ? StuffToDoService.update(item.id, data) : StuffToDoService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stuff-to-do'] });
-      toast({ title: item ? 'Updated' : 'Created', description: 'Your list has been synchronized.' });
+      toast({ title: item ? t('stuffToDo.updated') : t('stuffToDo.created'), description: t('stuffToDo.item_synced') });
       onClose();
     }
   });
@@ -396,9 +399,9 @@ function StuffFormModal({ item, onClose }: any) {
             <div className="flex justify-between items-start">
               <div className="space-y-1">
                 <h2 className="text-3xl font-black text-white tracking-tight">
-                  {item ? 'Edit Stuff' : 'Add New Stuff'}
+                  {item ? t('stuffToDo.edit_title') : t('stuffToDo.add_title')}
                 </h2>
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Capture the vibe</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-500">{t('stuffToDo.capture_vibe')}</p>
               </div>
               <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-white/5 transition-colors">
                 <X className="w-6 h-6 text-gray-600" />
@@ -408,14 +411,14 @@ function StuffFormModal({ item, onClose }: any) {
             <div className="space-y-6">
               {/* Title */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">What to do?</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">{t('stuffToDo.what_to_do')}</label>
                 <div className="relative">
                   <PencilLine className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                  <Input 
+                  <Input
                     required
-                    value={title} 
+                    value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Watch Rush Hour 2" 
+                    placeholder={t('stuffToDo.example_todo')}
                     className="h-14 pl-12 bg-white/5 border-white/5 rounded-2xl text-lg font-bold text-white focus:ring-primary-500 outline-none"
                     autoFocus
                   />
@@ -425,15 +428,17 @@ function StuffFormModal({ item, onClose }: any) {
               {/* Category & Date Grid */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Vibe Type</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">{t('stuffToDo.vibe_type')}</label>
                   <div className="relative">
-                    <select 
-                      value={category} 
+                    <select
+                      value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-6 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none cursor-pointer"
                     >
                       {CATEGORIES.filter(c => c !== 'All').map(c => (
-                        <option key={c} value={c} className="bg-gray-950">{c}</option>
+                        <option key={c} value={c} className="bg-gray-950">
+                          {c === 'Movies' ? t('stuffToDo.movies') : c === 'Social' ? t('stuffToDo.social') : c === 'Physical' ? t('stuffToDo.physical') : c === 'Productivity' ? t('stuffToDo.productivity') : c === 'Learning' ? t('stuffToDo.learning') : c === 'Fun' ? t('stuffToDo.fun') : c === 'Travel' ? t('stuffToDo.travel') : t('stuffToDo.other')}
+                        </option>
                       ))}
                     </select>
                     <ChevronRight className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 rotate-90" />
@@ -441,12 +446,12 @@ function StuffFormModal({ item, onClose }: any) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">When?</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">{t('stuffToDo.when')}</label>
                   <div className="relative">
                     <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <Input 
+                    <Input
                       type="date"
-                      value={plannedDate} 
+                      value={plannedDate}
                       onChange={(e) => setPlannedDate(e.target.value)}
                       className="h-14 pl-12 bg-white/5 border-white/5 rounded-2xl text-sm font-bold text-white focus:ring-primary-500 outline-none [color-scheme:dark]"
                     />
@@ -456,24 +461,24 @@ function StuffFormModal({ item, onClose }: any) {
 
               {/* Note */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">Deep Thoughts (Optional)</label>
-                <textarea 
-                  value={note} 
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-600 ml-2">{t('stuffToDo.deep_thoughts')}</label>
+                <textarea
+                  value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="Any specific plans or notes..."
+                  placeholder={t('stuffToDo.notes_placeholder')}
                   className="w-full min-h-[100px] bg-white/5 border border-white/10 rounded-2xl p-6 text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all resize-none"
                 />
               </div>
             </div>
 
             <div className="flex gap-4">
-              <Button type="button" variant="ghost" onClick={onClose} className="flex-1 h-14 rounded-2xl font-black text-gray-500 hover:text-white">Cancel</Button>
-              <Button 
+              <Button type="button" variant="ghost" onClick={onClose} className="flex-1 h-14 rounded-2xl font-black text-gray-500 hover:text-white">{t('stuffToDo.cancel')}</Button>
+              <Button
                 type="submit"
                 disabled={mutation.isPending}
                 className="flex-[2] h-14 rounded-2xl bg-primary-500 hover:bg-primary-600 text-white font-black shadow-xl shadow-primary-500/20"
               >
-                {mutation.isPending ? 'Syncing...' : item ? 'Update Entry' : 'Save Entry'}
+                {mutation.isPending ? t('stuffToDo.syncing') : item ? t('stuffToDo.update_entry') : t('stuffToDo.save_entry')}
               </Button>
             </div>
           </form>

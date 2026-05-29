@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/lib/language-context';
 
 interface ActivityFormData {
   title: string;
@@ -24,6 +25,7 @@ interface Props {
 const CATEGORIES = ['Social Media', 'Gaming', 'Food', 'Time Wasting', 'Health', 'Work', 'Sleep', 'Other'];
 
 export function ActivityFormModal({ open, onClose, onSubmit, isLoading, initial, mode = 'create' }: Props) {
+  const { t } = useLanguage();
   const [form, setForm] = useState<ActivityFormData>({
     title: '', reason: '', category: '', severity: 'LOW', notes: '',
   });
@@ -60,7 +62,7 @@ export function ActivityFormModal({ open, onClose, onSubmit, isLoading, initial,
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
               <h2 className="text-lg font-bold text-white">
-                {mode === 'create' ? 'Add Banned Activity' : 'Edit Banned Activity'}
+                {mode === 'create' ? t('banned.modal_create_title') : t('banned.modal_edit_title')}
               </h2>
               <button onClick={onClose} className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
                 <X className="w-4 h-4 text-gray-400" />
@@ -69,54 +71,58 @@ export function ActivityFormModal({ open, onClose, onSubmit, isLoading, initial,
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               <div>
-                <label className={labelCls}>Activity Title *</label>
+                <label className={labelCls}>{t('banned.field_title')} *</label>
                 <input
                   autoFocus value={form.title} onChange={e => set('title', e.target.value)}
-                  placeholder="e.g. No TikTok, No gaming before work…"
+                  placeholder={t('banned.field_title_placeholder')}
                   className={inputCls} required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelCls}>Category</label>
+                  <label className={labelCls}>{t('banned.field_category')}</label>
                   <select value={form.category} onChange={e => set('category', e.target.value)} className={inputCls}>
-                    <option value="">Select…</option>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    <option value="">{t('banned.field_category_placeholder')}</option>
+                    {CATEGORIES.map(c => (
+                      <option key={c} value={c}>
+                        {t(`banned.categories.${c.toLowerCase().replace(/\s+/g, '_')}`)}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label className={labelCls}>Severity</label>
+                  <label className={labelCls}>{t('banned.field_severity')}</label>
                   <select value={form.severity} onChange={e => set('severity', e.target.value as any)} className={inputCls}>
-                    <option value="LOW">🟢 Low</option>
-                    <option value="MEDIUM">🟡 Medium</option>
-                    <option value="HIGH">🔴 High</option>
+                    <option value="LOW">🟢 {t('banned.severity_low')}</option>
+                    <option value="MEDIUM">🟡 {t('banned.severity_medium')}</option>
+                    <option value="HIGH">🔴 {t('banned.severity_high')}</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className={labelCls}>Why are you banning this?</label>
+                <label className={labelCls}>{t('banned.field_reason')}</label>
                 <input value={form.reason} onChange={e => set('reason', e.target.value)}
-                  placeholder="e.g. It wastes my time and kills productivity"
+                  placeholder={t('banned.field_reason_placeholder')}
                   className={inputCls} />
               </div>
 
               <div>
-                <label className={labelCls}>Notes</label>
+                <label className={labelCls}>{t('banned.field_notes')}</label>
                 <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
-                  placeholder="Any additional context or triggers to watch for…"
+                  placeholder={t('banned.field_notes_placeholder')}
                   rows={3} className={`${inputCls} resize-none`} />
               </div>
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={onClose}
                   className="flex-1 h-11 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 text-sm font-medium transition-all">
-                  Cancel
+                  {t('banned.cancel')}
                 </button>
                 <button type="submit" disabled={isLoading || !form.title.trim()}
                   className="flex-1 h-11 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                  {isLoading ? 'Saving…' : mode === 'create' ? 'Add Activity' : 'Save Changes'}
+                  {isLoading ? t('banned.saving') : mode === 'create' ? t('banned.add_activity') : t('banned.save')}
                 </button>
               </div>
             </form>
